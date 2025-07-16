@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
+import '../services/auth_service.dart';
 import '../models/pdf_document.dart';
 
 class StorageScreen extends StatefulWidget {
@@ -156,6 +157,23 @@ class _StorageScreenState extends State<StorageScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    try {
+      await AuthService.signOut();
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signed out successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _showError('Failed to sign out: $e');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -180,6 +198,13 @@ class _StorageScreenState extends State<StorageScreen> {
       appBar: AppBar(
         title: const Text('Storage Management'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
+            tooltip: 'Sign Out',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

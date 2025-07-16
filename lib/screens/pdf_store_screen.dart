@@ -6,7 +6,7 @@ import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../screens/add_pdf_screen.dart';
 import '../screens/downloads_screen.dart';
-import '../screens/storage_screen.dart';
+import '../screens/authenticated_storage_screen.dart';
 import '../services/download_service.dart';
 
 class PdfStoreScreen extends StatefulWidget {
@@ -235,7 +235,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const StorageScreen(),
+                              builder: (context) => const AuthenticatedStorageScreen(),
                             ),
                           );
                         },
