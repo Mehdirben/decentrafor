@@ -659,7 +659,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
             ),
             Text(
               label,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
           ],
         ),
