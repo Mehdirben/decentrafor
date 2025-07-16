@@ -73,7 +73,7 @@ class DownloadService {
       final fileName = '${pdf.title.replaceAll(RegExp(r'[^\w\s-]'), '')}_$timestamp.pdf';
       final filePath = '${downloadDir.path}/$fileName';
 
-      // Download the file
+      // Download the PDF file
       await _dio.download(
         pdf.fileUrl,
         filePath,
@@ -85,12 +85,43 @@ class DownloadService {
         ),
       );
 
+      // Download the thumbnail if available
+      if (pdf.thumbnailUrl != null && pdf.thumbnailUrl!.isNotEmpty) {
+        await _downloadThumbnail(pdf, filePath);
+      }
+
       return filePath;
     } catch (e) {
       if (kDebugMode) {
         print('Error downloading PDF: $e');
       }
       throw Exception('Failed to download PDF: $e');
+    }
+  }
+
+  // Download thumbnail for a PDF
+  static Future<void> _downloadThumbnail(PdfDocument pdf, String pdfPath) async {
+    try {
+      final thumbnailPath = pdfPath.replaceAll('.pdf', '_thumbnail.jpg');
+      
+      await _dio.download(
+        pdf.thumbnailUrl!,
+        thumbnailPath,
+        options: Options(
+          headers: {
+            'User-Agent': 'Flutter PDF Store App',
+          },
+        ),
+      );
+      
+      if (kDebugMode) {
+        print('Thumbnail downloaded successfully: $thumbnailPath');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error downloading thumbnail: $e');
+      }
+      // Don't throw error for thumbnail download failure, just log it
     }
   }
 
@@ -149,11 +180,30 @@ class DownloadService {
   static Future<bool> deleteDownloadedPdf(String filePath) async {
     try {
       final file = File(filePath);
+      final thumbnailPath = filePath.replaceAll('.pdf', '_thumbnail.jpg');
+      final thumbnailFile = File(thumbnailPath);
+      
+      bool pdfDeleted = false;
+      
+      // Delete PDF file
       if (await file.exists()) {
         await file.delete();
-        return true;
+        pdfDeleted = true;
       }
-      return false;
+      
+      // Delete thumbnail file if it exists
+      if (await thumbnailFile.exists()) {
+        try {
+          await thumbnailFile.delete();
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error deleting thumbnail: $e');
+          }
+          // Continue even if thumbnail deletion fails
+        }
+      }
+      
+      return pdfDeleted;
     } catch (e) {
       if (kDebugMode) {
         print('Error deleting downloaded PDF: $e');
