@@ -260,11 +260,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                         color: const Color(0xFF10B981),
                       ),
                       const SizedBox(width: 12),
-                      _buildStatCard(
-                        icon: Icons.storage_rounded,
-                        label: 'Storage',
-                        value: _getTotalStorageSize(),
-                        color: const Color(0xFF8B5CF6),
+                      FutureBuilder<String>(
+                        future: _calculateTotalStorageSize(),
+                        builder: (context, snapshot) {
+                          return _buildStatCard(
+                            icon: Icons.storage_rounded,
+                            label: 'Storage',
+                            value: snapshot.data ?? 'Calculating...',
+                            color: const Color(0xFF8B5CF6),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -413,9 +418,30 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     );
   }
 
-  String _getTotalStorageSize() {
-    // This is a placeholder - you might want to calculate actual storage
-    return '${_downloadedPdfs.length * 2.5} MB';
+  Future<String> _calculateTotalStorageSize() async {
+    try {
+      int totalSize = 0;
+      
+      for (final filePath in _downloadedPdfs) {
+        final file = File(filePath);
+        if (await file.exists()) {
+          final stat = await file.stat();
+          totalSize += stat.size;
+        }
+        
+        // Also check for thumbnail file
+        final thumbnailPath = filePath.replaceAll('.pdf', '_thumbnail.jpg');
+        final thumbnailFile = File(thumbnailPath);
+        if (await thumbnailFile.exists()) {
+          final thumbnailStat = await thumbnailFile.stat();
+          totalSize += thumbnailStat.size;
+        }
+      }
+      
+      return DownloadService.formatFileSize(totalSize);
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 }
 
