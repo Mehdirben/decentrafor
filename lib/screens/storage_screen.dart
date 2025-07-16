@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
+import '../services/pdf_service.dart';
+import '../models/pdf_document.dart';
 
 class StorageScreen extends StatefulWidget {
   const StorageScreen({Key? key}) : super(key: key);
@@ -12,11 +14,25 @@ class _StorageScreenState extends State<StorageScreen> {
   bool _isLoading = false;
   Map<String, dynamic> _storageInfo = {};
   List<Map<String, dynamic>> _uploadResults = [];
+  List<PdfDocument> _allPdfs = [];
+  bool _showPdfList = false;
 
   @override
   void initState() {
     super.initState();
     _loadStorageInfo();
+    _loadAllPdfs();
+  }
+
+  Future<void> _loadAllPdfs() async {
+    try {
+      final pdfs = await PdfService.getAllPdfs();
+      setState(() {
+        _allPdfs = pdfs;
+      });
+    } catch (e) {
+      _showError('Failed to load PDFs: $e');
+    }
   }
 
   Future<void> _loadStorageInfo() async {
@@ -27,24 +43,6 @@ class _StorageScreenState extends State<StorageScreen> {
       });
     } catch (e) {
       _showError('Failed to load storage info: $e');
-    }
-  }
-
-  Future<void> _createBucket() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await StorageService.createPdfBucket();
-      _showSuccess('PDF bucket created successfully!');
-      await _loadStorageInfo();
-    } catch (e) {
-      _showError('Failed to create bucket: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -106,6 +104,55 @@ class _StorageScreenState extends State<StorageScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _deletePdf(String pdfId, String title) async {
+    // Show confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete PDF'),
+        content: Text('Are you sure you want to delete "$title"?\n\nThis will remove the PDF from both the database and storage.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await PdfService.deletePdf(pdfId);
+        _showSuccess('PDF "$title" deleted successfully');
+        await _loadAllPdfs();
+        await _loadStorageInfo();
+      } catch (e) {
+        _showError('Failed to delete PDF: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _togglePdfList() async {
+    setState(() {
+      _showPdfList = !_showPdfList;
+    });
+    if (_showPdfList) {
+      await _loadAllPdfs();
     }
   }
 
@@ -179,17 +226,6 @@ class _StorageScreenState extends State<StorageScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Create Bucket Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _createBucket,
-                icon: const Icon(Icons.create_new_folder),
-                label: const Text('Create PDF Bucket'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            
             // Upload Sample PDFs Button
             SizedBox(
               width: double.infinity,
@@ -197,6 +233,17 @@ class _StorageScreenState extends State<StorageScreen> {
                 onPressed: _isLoading ? null : _uploadSamplePdfs,
                 icon: const Icon(Icons.upload),
                 label: const Text('Upload Sample PDFs'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            // Manage PDFs Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _togglePdfList,
+                icon: Icon(_showPdfList ? Icons.visibility_off : Icons.visibility),
+                label: Text(_showPdfList ? 'Hide PDFs' : 'Manage PDFs'),
               ),
             ),
             const SizedBox(height: 8),
@@ -221,6 +268,17 @@ class _StorageScreenState extends State<StorageScreen> {
                 label: const Text('Test Storage Bucket'),
               ),
             ),
+            const SizedBox(height: 8),
+            
+            // Toggle PDF List Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _togglePdfList,
+                icon: const Icon(Icons.list),
+                label: Text(_showPdfList ? 'Hide PDF List' : 'Show PDF List'),
+              ),
+            ),
             const SizedBox(height: 16),
             
             // Loading indicator
@@ -236,7 +294,8 @@ class _StorageScreenState extends State<StorageScreen> {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              Expanded(
+              SizedBox(
+                height: 200,
                 child: ListView.builder(
                   itemCount: _uploadResults.length,
                   itemBuilder: (context, index) {
@@ -258,6 +317,49 @@ class _StorageScreenState extends State<StorageScreen> {
                   },
                 ),
               ),
+            ],
+            
+            // PDF Management Section
+            if (_showPdfList) ...[
+              const SizedBox(height: 16),
+              Text(
+                'PDF Management (${_allPdfs.length} PDFs)',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _allPdfs.length,
+                  itemBuilder: (context, index) {
+                    final pdf = _allPdfs[index];
+                    
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.picture_as_pdf,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        title: Text(pdf.title),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Size: ${pdf.sizeFormatted}'),
+                            Text('Category: ${pdf.category}'),
+                            Text('Created: ${pdf.createdAt.toString().split(' ')[0]}'),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: _isLoading ? null : () => _deletePdf(pdf.id, pdf.title),
+                          tooltip: 'Delete PDF',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ] else if (!_uploadResults.isNotEmpty) ...[
+              const Expanded(child: SizedBox()), // Spacer when no content
             ],
           ],
         ),

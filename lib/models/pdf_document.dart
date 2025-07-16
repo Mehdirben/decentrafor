@@ -56,4 +56,15 @@ class PdfDocument {
       'tags': tags,
     };
   }
+
+  // Helper method to format file size
+  String get sizeFormatted {
+    if (fileSize < 1024) {
+      return '$fileSize B';
+    } else if (fileSize < 1024 * 1024) {
+      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
+    } else {
+      return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+  }
 }
