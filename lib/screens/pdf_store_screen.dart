@@ -492,11 +492,20 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           decoration: InputDecoration(
             hintText: 'Search your library...',
             hintStyle: TextStyle(color: Colors.grey[500]),
-            prefixIcon: Icon(
-              Icons.search_rounded,
-              color: _isSearchFocused
-                  ? const Color(0xFF667EEA)
-                  : Colors.grey[600],
+            prefixIcon: IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                color: _isSearchFocused
+                    ? const Color(0xFF667EEA)
+                    : Colors.grey[600],
+              ),
+              onPressed: () {
+                // Trigger search when search icon is clicked
+                Provider.of<PdfProvider>(
+                  context,
+                  listen: false,
+                ).searchPdfs(_searchController.text);
+              },
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
@@ -517,8 +526,13 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
             border: InputBorder.none,
             contentPadding: const EdgeInsets.all(16),
           ),
-          onChanged: (value) {
+          onSubmitted: (value) {
+            // Also trigger search when user presses Enter
             Provider.of<PdfProvider>(context, listen: false).searchPdfs(value);
+          },
+          onChanged: (value) {
+            // Just update the UI state, don't trigger search
+            setState(() {});
           },
         ),
       ),
