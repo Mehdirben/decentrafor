@@ -169,23 +169,18 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
                       padding: const EdgeInsets.fromLTRB(20, 30, 20, 100), // Added top padding to push PDFs down
                       sliver: pdfProvider.pdfs.isEmpty
                           ? SliverToBoxAdapter(child: _buildEmptyState())
-                          : SliverGrid(
+                          : SliverList(
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                                   final pdf = pdfProvider.pdfs[index];
                                   return AnimatedContainer(
                                     duration: Duration(milliseconds: 300 + (index * 100)),
                                     curve: Curves.easeOutBack,
-                                    child: ModernPdfCard(pdf: pdf),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: ModernPdfListCard(pdf: pdf),
                                   );
                                 },
                                 childCount: pdfProvider.pdfs.length,
-                              ),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
                               ),
                             ),
                     ),
@@ -681,6 +676,419 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
         ],
       ),
     );
+  }
+}
+
+// Modern PDF List Card optimized for list layout
+class ModernPdfListCard extends StatefulWidget {
+  final PdfDocument pdf;
+
+  const ModernPdfListCard({super.key, required this.pdf});
+
+  @override
+  State<ModernPdfListCard> createState() => _ModernPdfListCardState();
+}
+
+class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProviderStateMixin {
+  bool _isDownloading = false;
+  bool _isDownloaded = false;
+  double _downloadProgress = 0.0;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+    _checkDownloadStatus();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkDownloadStatus() async {
+    final isDownloaded = await DownloadService.isPdfDownloaded(widget.pdf);
+    if (mounted) {
+      setState(() {
+        _isDownloaded = isDownloaded;
+      });
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+
+    try {
+      final filePath = await DownloadService.downloadPdf(
+        widget.pdf,
+        onProgress: (received, total) {
+          if (mounted) {
+            setState(() {
+              _downloadProgress = received / total;
+            });
+          }
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _isDownloaded = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('PDF downloaded successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PdfViewerScreen(
+                      pdf: widget.pdf,
+                      localPath: filePath,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openDownloadedPdf() async {
+    final filePath = await DownloadService.getDownloadedPdfPath(widget.pdf);
+    if (filePath != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfViewerScreen(
+            pdf: widget.pdf,
+            localPath: filePath,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _animationController.forward(),
+      onTapUp: (_) => _animationController.reverse(),
+      onTapCancel: () => _animationController.reverse(),
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => 
+                PdfViewerScreen(pdf: widget.pdf),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: animation.drive(
+                    Tween(begin: const Offset(0.0, 0.1), end: Offset.zero).chain(
+                      CurveTween(curve: Curves.easeOut),
+                    ),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
+        );
+      },
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  children: [
+                    // Left side - PDF icon and category color
+                    Container(
+                      width: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.05),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 32,
+                            color: _getCategoryColor(widget.pdf.category),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Middle - Content
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title
+                            Text(
+                              widget.pdf.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                height: 1.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            
+                            const SizedBox(height: 4),
+                            
+                            // Description
+                            Text(
+                              widget.pdf.description,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            
+                            const Spacer(),
+                            
+                            // Download progress
+                            if (_isDownloading)
+                              Column(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: _downloadProgress,
+                                      backgroundColor: Colors.grey[200],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        _getCategoryColor(widget.pdf.category),
+                                      ),
+                                      minHeight: 4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${(_downloadProgress * 100).toInt()}%',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            
+                            // Bottom row - Category and size
+                            if (!_isDownloading)
+                              Row(
+                                children: [
+                                  // Category badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.3),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.pdf.category,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: _getCategoryColor(widget.pdf.category),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  const Spacer(),
+                                  
+                                  // Size and download status
+                                  Row(
+                                    children: [
+                                      if (_isDownloaded)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 6),
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Icon(
+                                            Icons.download_done_rounded,
+                                            size: 12,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      Text(
+                                        '${(widget.pdf.fileSize / 1024 / 1024).toStringAsFixed(1)} MB',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Right side - Download button
+                    Container(
+                      width: 60,
+                      child: Center(
+                        child: _buildListDownloadButton(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildListDownloadButton() {
+    if (_isDownloading) {
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.2),
+          width: 0.5,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(
+          _isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
+          color: _isDownloaded ? Colors.green : _getCategoryColor(widget.pdf.category),
+          size: 18,
+        ),
+        onPressed: _isDownloaded ? _openDownloadedPdf : _downloadPdf,
+        tooltip: _isDownloaded ? 'Open downloaded PDF' : 'Download PDF',
+      ),
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'education':
+        return const Color(0xFF3B82F6);
+      case 'business':
+        return const Color(0xFF10B981);
+      case 'technology':
+        return const Color(0xFF8B5CF6);
+      case 'science':
+        return const Color(0xFF06B6D4);
+      case 'literature':
+        return const Color(0xFFEF4444);
+      case 'health':
+        return const Color(0xFFF59E0B);
+      default:
+        return const Color(0xFF667EEA);
+    }
   }
 }
 
