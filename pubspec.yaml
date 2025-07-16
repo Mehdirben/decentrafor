@@ -52,6 +52,7 @@ dependencies:
   # File handling
   file_picker: ^8.1.2
   path_provider: ^2.1.4
+  image_picker: ^1.0.7
   
   # Download functionality
   permission_handler: ^11.3.1

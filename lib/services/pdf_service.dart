@@ -75,6 +75,31 @@ class PdfService {
     }
   }
 
+  // Upload thumbnail to Supabase Storage
+  static Future<String> uploadThumbnail(File file, String fileName) async {
+    try {
+      // Create a unique filename to avoid conflicts
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = file.path.split('.').last;
+      final uniqueFileName = '${fileName.replaceAll('.${fileName.split('.').last}', '')}_thumbnail_$timestamp.$fileExtension';
+      final filePath = 'thumbnails/$uniqueFileName';
+      
+      // Upload the file to Supabase Storage
+      await _client.storage
+          .from(SupabaseConfig.pdfBucketName)
+          .upload(filePath, file);
+      
+      // Get the public URL
+      final String publicUrl = _client.storage
+          .from(SupabaseConfig.pdfBucketName)
+          .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (e) {
+      throw Exception('Failed to upload thumbnail to Supabase Storage: $e');
+    }
+  }
+
   // Add new PDF to database
   static Future<PdfDocument> addPdf({
     required String title,
@@ -84,6 +109,7 @@ class PdfService {
     required int fileSize,
     required String category,
     required List<String> tags,
+    String? thumbnailUrl,
   }) async {
     try {
       final response = await _client
@@ -96,6 +122,7 @@ class PdfService {
             'file_size': fileSize,
             'category': category,
             'tags': tags,
+            'thumbnail_url': thumbnailUrl,
             'created_at': DateTime.now().toIso8601String(),
             'updated_at': DateTime.now().toIso8601String(),
           })
