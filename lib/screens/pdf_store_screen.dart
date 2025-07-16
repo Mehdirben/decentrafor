@@ -16,11 +16,15 @@ class PdfStoreScreen extends StatefulWidget {
   State<PdfStoreScreen> createState() => _PdfStoreScreenState();
 }
 
-class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStateMixin {
+class _PdfStoreScreenState extends State<PdfStoreScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _searchAnimationController;
   late Animation<double> _searchAnimation;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabAnimation;
   bool _isSearchFocused = false;
+  bool _isFabExpanded = false;
 
   @override
   void initState() {
@@ -33,7 +37,16 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
       parent: _searchAnimationController,
       curve: Curves.easeOut,
     );
-    
+
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fabAnimation = CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeOut,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PdfProvider>(context, listen: false).loadPdfs();
     });
@@ -42,6 +55,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
   @override
   void dispose() {
     _searchAnimationController.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -59,264 +73,279 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
             return _buildErrorState(pdfProvider);
           }
 
-          return Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: () async {
-                  await Provider.of<PdfProvider>(context, listen: false).loadPdfs();
-                },
-                color: const Color(0xFF667EEA),
-                backgroundColor: Colors.white,
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Container(
-                        height: MediaQuery.of(context).size.height * 0.28, // Responsive height
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF667EEA),
-                              Color(0xFF764BA2),
-                            ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              await Provider.of<PdfProvider>(context, listen: false).loadPdfs();
+            },
+            color: const Color(0xFF667EEA),
+            backgroundColor: Colors.white,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Container(
+                    height:
+                        MediaQuery.of(context).size.height *
+                        0.28, // Responsive height
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Background pattern
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: GeometricPatternPainter(),
                           ),
                         ),
-                        child: Stack(
-                          children: [
-                            // Background pattern
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: GeometricPatternPainter(),
-                              ),
-                            ),
-                            // Content
-                            SafeArea(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 100, 24, 10), // Minimal padding
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Text(
-                                            'PDF Library',
-                                            style: TextStyle(
-                                              fontSize: 32,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                              letterSpacing: -0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Discover and organize your documents',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.white.withValues(alpha: 0.9),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                        // Content
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              24,
+                              20,
+                              24,
+                              10,
+                            ), // Reduced top padding
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'PDF Library',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Discover and organize your documents',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Transform.translate(
-                        offset: const Offset(0, 20), // Overlap with header
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              _buildSearchBar(),
-                              const SizedBox(height: 20),
-                              _buildCategoryFilter(pdfProvider),
-                              const SizedBox(height: 24),
-                              _buildStatsRow(pdfProvider),
-                            ],
                           ),
                         ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 30, 20, 100), // Added top padding to push PDFs down
-                      sliver: pdfProvider.pdfs.isEmpty
-                          ? SliverToBoxAdapter(child: _buildEmptyState())
-                          : SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  final pdf = pdfProvider.pdfs[index];
-                                  return AnimatedContainer(
-                                    duration: Duration(milliseconds: 300 + (index * 100)),
-                                    curve: Curves.easeOutBack,
-                                    margin: const EdgeInsets.only(bottom: 16),
-                                    child: ModernPdfListCard(pdf: pdf),
-                                  );
-                                },
-                                childCount: pdfProvider.pdfs.length,
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-              // Glass app bar positioned on top
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildModernAppBar(context),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => 
-                  const AddPdfScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return SlideTransition(
-                  position: animation.drive(
-                    Tween(begin: const Offset(0.0, 1.0), end: Offset.zero).chain(
-                      CurveTween(curve: Curves.easeOut),
+                      ],
                     ),
                   ),
-                  child: child,
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 300),
+                ),
+                SliverToBoxAdapter(
+                  child: Transform.translate(
+                    offset: const Offset(0, 20), // Overlap with header
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildSearchBar(),
+                          const SizedBox(height: 20),
+                          _buildCategoryFilter(pdfProvider),
+                          const SizedBox(height: 24),
+                          _buildStatsRow(pdfProvider),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    30,
+                    20,
+                    100,
+                  ), // Added top padding to push PDFs down
+                  sliver: pdfProvider.pdfs.isEmpty
+                      ? SliverToBoxAdapter(child: _buildEmptyState())
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final pdf = pdfProvider.pdfs[index];
+                            return AnimatedContainer(
+                              duration: Duration(
+                                milliseconds: 300 + (index * 100),
+                              ),
+                              curve: Curves.easeOutBack,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: ModernPdfListCard(pdf: pdf),
+                            );
+                          }, childCount: pdfProvider.pdfs.length),
+                        ),
+                ),
+              ],
             ),
           );
         },
-        backgroundColor: const Color(0xFF667EEA),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add PDF'),
-        elevation: 8,
-        highlightElevation: 12,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
       ),
+      floatingActionButton: _buildExpandableFAB(),
     );
   }
 
-  Widget _buildModernAppBar(BuildContext context) {
-    return Container(
-      height: 120, // Fixed height for the app bar
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.3),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+  Widget _buildExpandableFAB() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Expanded action buttons
+        AnimatedBuilder(
+          animation: _fabAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _fabAnimation.value,
+              child: Opacity(
+                opacity: _fabAnimation.value,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildGlassAction(
-                      Icons.storage_rounded,
-                      'Storage',
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const StorageScreen()),
+                    // Storage button
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: FloatingActionButton(
+                        heroTag: "storage",
+                        onPressed: () {
+                          _toggleFAB();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StorageScreen(),
+                            ),
+                          );
+                        },
+                        backgroundColor: const Color(0xFF8B5CF6),
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        child: const Icon(Icons.storage_rounded),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildGlassAction(
-                      Icons.download_rounded,
-                      'Downloads',
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DownloadsScreen()),
+                    // Downloads button
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: FloatingActionButton(
+                        heroTag: "downloads",
+                        onPressed: () {
+                          _toggleFAB();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DownloadsScreen(),
+                            ),
+                          );
+                        },
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        child: const Icon(Icons.download_rounded),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildGlassAction(
-                      Icons.add_rounded,
-                      'Add PDF',
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AddPdfScreen()),
+                    // Add PDF button
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: FloatingActionButton(
+                        heroTag: "add_pdf",
+                        onPressed: () {
+                          _toggleFAB();
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      const AddPdfScreen(),
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    return SlideTransition(
+                                      position: animation.drive(
+                                        Tween(
+                                          begin: const Offset(0.0, 1.0),
+                                          end: Offset.zero,
+                                        ).chain(
+                                          CurveTween(curve: Curves.easeOut),
+                                        ),
+                                      ),
+                                      child: child,
+                                    );
+                                  },
+                              transitionDuration: const Duration(
+                                milliseconds: 300,
+                              ),
+                            ),
+                          );
+                        },
+                        backgroundColor: const Color(0xFF667EEA),
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        child: const Icon(Icons.add_rounded),
                       ),
                     ),
                   ],
                 ),
               ),
+            );
+          },
+        ),
+        // Main FAB
+        FloatingActionButton(
+          heroTag: "main",
+          onPressed: _toggleFAB,
+          backgroundColor: const Color(0xFF667EEA),
+          foregroundColor: Colors.white,
+          elevation: 8,
+          child: AnimatedRotation(
+            turns: _isFabExpanded
+                ? 0.125
+                : 0.0, // 45 degree rotation when expanded
+            duration: const Duration(milliseconds: 300),
+            child: Icon(
+              _isFabExpanded ? Icons.close_rounded : Icons.menu_rounded,
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildGlassAction(IconData icon, String tooltip, VoidCallback onPressed) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white, size: 20),
-        onPressed: onPressed,
-        tooltip: tooltip,
-      ),
-    );
+  void _toggleFAB() {
+    setState(() {
+      _isFabExpanded = !_isFabExpanded;
+    });
+
+    if (_isFabExpanded) {
+      _fabAnimationController.forward();
+    } else {
+      _fabAnimationController.reverse();
+    }
   }
 
   Widget _buildLoadingState() {
@@ -398,10 +427,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
             const SizedBox(height: 12),
             Text(
               pdfProvider.error!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -413,7 +439,10 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF667EEA),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -431,16 +460,14 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
       animation: _searchAnimation,
       child: Container(
         decoration: BoxDecoration(
-          color: _isSearchFocused 
-              ? Colors.white 
-              : const Color(0xFFF1F5F9),
+          color: _isSearchFocused ? Colors.white : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _isSearchFocused 
-                ? const Color(0xFF667EEA) 
+            color: _isSearchFocused
+                ? const Color(0xFF667EEA)
                 : Colors.grey.withValues(alpha: 0.1),
           ),
-          boxShadow: _isSearchFocused 
+          boxShadow: _isSearchFocused
               ? [
                   BoxShadow(
                     color: const Color(0xFF667EEA).withValues(alpha: 0.1),
@@ -468,15 +495,20 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
             hintText: 'Search your library...',
             hintStyle: TextStyle(color: Colors.grey[500]),
             prefixIcon: Icon(
-              Icons.search_rounded, 
-              color: _isSearchFocused ? const Color(0xFF667EEA) : Colors.grey[600],
+              Icons.search_rounded,
+              color: _isSearchFocused
+                  ? const Color(0xFF667EEA)
+                  : Colors.grey[600],
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: Icon(Icons.clear_rounded, color: Colors.grey[600]),
                     onPressed: () {
                       _searchController.clear();
-                      Provider.of<PdfProvider>(context, listen: false).searchPdfs('');
+                      Provider.of<PdfProvider>(
+                        context,
+                        listen: false,
+                      ).searchPdfs('');
                       setState(() {
                         _isSearchFocused = false;
                       });
@@ -510,7 +542,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
         itemBuilder: (context, index) {
           final category = pdfProvider.categories[index];
           final isSelected = pdfProvider.selectedCategory == category;
-          
+
           return Container(
             margin: const EdgeInsets.only(right: 12),
             child: AnimatedContainer(
@@ -535,12 +567,17 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
                   onTap: () => pdfProvider.filterByCategory(category),
                   borderRadius: BorderRadius.circular(24),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                     child: Text(
                       category,
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.grey[700],
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                     ),
                   ),
@@ -608,10 +645,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
             ),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -649,10 +683,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
           const SizedBox(height: 12),
           Text(
             'Add your first PDF to get started',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
@@ -689,7 +720,8 @@ class ModernPdfListCard extends StatefulWidget {
   State<ModernPdfListCard> createState() => _ModernPdfListCardState();
 }
 
-class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProviderStateMixin {
+class _ModernPdfListCardState extends State<ModernPdfListCard>
+    with TickerProviderStateMixin {
   bool _isDownloading = false;
   bool _isDownloaded = false;
   double _downloadProgress = 0.0;
@@ -703,13 +735,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.98,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
     _checkDownloadStatus();
   }
 
@@ -757,7 +785,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
             content: const Text('PDF downloaded successfully'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             action: SnackBarAction(
               label: 'Open',
               textColor: Colors.white,
@@ -765,10 +795,8 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PdfViewerScreen(
-                      pdf: widget.pdf,
-                      localPath: filePath,
-                    ),
+                    builder: (context) =>
+                        PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
                   ),
                 );
               },
@@ -787,7 +815,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
             content: Text('Download failed: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -800,10 +830,8 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PdfViewerScreen(
-            pdf: widget.pdf,
-            localPath: filePath,
-          ),
+          builder: (context) =>
+              PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
         ),
       );
     }
@@ -819,21 +847,23 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
         Navigator.push(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => 
+            pageBuilder: (context, animation, secondaryAnimation) =>
                 PdfViewerScreen(pdf: widget.pdf),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: animation.drive(
-                    Tween(begin: const Offset(0.0, 0.1), end: Offset.zero).chain(
-                      CurveTween(curve: Curves.easeOut),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                      ),
+                      child: child,
                     ),
-                  ),
-                  child: child,
-                ),
-              );
-            },
+                  );
+                },
             transitionDuration: const Duration(milliseconds: 300),
           ),
         );
@@ -873,8 +903,12 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
-                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.05),
+                            _getCategoryColor(
+                              widget.pdf.category,
+                            ).withValues(alpha: 0.1),
+                            _getCategoryColor(
+                              widget.pdf.category,
+                            ).withValues(alpha: 0.05),
                           ],
                         ),
                       ),
@@ -882,7 +916,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                            color: _getCategoryColor(
+                              widget.pdf.category,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
@@ -893,7 +929,7 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                         ),
                       ),
                     ),
-                    
+
                     // Middle - Content
                     Expanded(
                       child: Padding(
@@ -913,9 +949,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            
+
                             const SizedBox(height: 4),
-                            
+
                             // Description
                             Text(
                               widget.pdf.description,
@@ -927,9 +963,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            
+
                             const Spacer(),
-                            
+
                             // Download progress
                             if (_isDownloading)
                               Column(
@@ -956,19 +992,26 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                                   ),
                                 ],
                               ),
-                            
+
                             // Bottom row - Category and size
                             if (!_isDownloading)
                               Row(
                                 children: [
                                   // Category badge
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                                      color: _getCategoryColor(
+                                        widget.pdf.category,
+                                      ).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.3),
+                                        color: _getCategoryColor(
+                                          widget.pdf.category,
+                                        ).withValues(alpha: 0.3),
                                         width: 0.5,
                                       ),
                                     ),
@@ -976,24 +1019,32 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                                       widget.pdf.category,
                                       style: TextStyle(
                                         fontSize: 10,
-                                        color: _getCategoryColor(widget.pdf.category),
+                                        color: _getCategoryColor(
+                                          widget.pdf.category,
+                                        ),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
-                                  
+
                                   const Spacer(),
-                                  
+
                                   // Size and download status
                                   Row(
                                     children: [
                                       if (_isDownloaded)
                                         Container(
-                                          margin: const EdgeInsets.only(right: 6),
+                                          margin: const EdgeInsets.only(
+                                            right: 6,
+                                          ),
                                           padding: const EdgeInsets.all(3),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: Colors.green.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.download_done_rounded,
@@ -1017,13 +1068,11 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
                         ),
                       ),
                     ),
-                    
+
                     // Right side - Download button
                     Container(
                       width: 60,
-                      child: Center(
-                        child: _buildListDownloadButton(),
-                      ),
+                      child: Center(child: _buildListDownloadButton()),
                     ),
                   ],
                 ),
@@ -1063,7 +1112,9 @@ class _ModernPdfListCardState extends State<ModernPdfListCard> with TickerProvid
       child: IconButton(
         icon: Icon(
           _isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
-          color: _isDownloaded ? Colors.green : _getCategoryColor(widget.pdf.category),
+          color: _isDownloaded
+              ? Colors.green
+              : _getCategoryColor(widget.pdf.category),
           size: 18,
         ),
         onPressed: _isDownloaded ? _openDownloadedPdf : _downloadPdf,
@@ -1115,11 +1166,7 @@ class GeometricPatternPainter extends CustomPainter {
 
     for (int i = 0; i < 10; i++) {
       final y = i * 20.0;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y + 50),
-        linePaint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 50), linePaint);
     }
   }
 
@@ -1136,7 +1183,8 @@ class ModernPdfCard extends StatefulWidget {
   State<ModernPdfCard> createState() => _ModernPdfCardState();
 }
 
-class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateMixin {
+class _ModernPdfCardState extends State<ModernPdfCard>
+    with TickerProviderStateMixin {
   bool _isDownloading = false;
   bool _isDownloaded = false;
   double _downloadProgress = 0.0;
@@ -1150,13 +1198,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
     _checkDownloadStatus();
   }
 
@@ -1204,7 +1248,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
             content: const Text('PDF downloaded successfully'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             action: SnackBarAction(
               label: 'Open',
               textColor: Colors.white,
@@ -1212,10 +1258,8 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PdfViewerScreen(
-                      pdf: widget.pdf,
-                      localPath: filePath,
-                    ),
+                    builder: (context) =>
+                        PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
                   ),
                 );
               },
@@ -1234,7 +1278,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
             content: Text('Download failed: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -1247,10 +1293,8 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PdfViewerScreen(
-            pdf: widget.pdf,
-            localPath: filePath,
-          ),
+          builder: (context) =>
+              PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
         ),
       );
     }
@@ -1266,21 +1310,23 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
         Navigator.push(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => 
+            pageBuilder: (context, animation, secondaryAnimation) =>
                 PdfViewerScreen(pdf: widget.pdf),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: animation.drive(
-                    Tween(begin: const Offset(0.0, 0.1), end: Offset.zero).chain(
-                      CurveTween(curve: Curves.easeOut),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                      ),
+                      child: child,
                     ),
-                  ),
-                  child: child,
-                ),
-              );
-            },
+                  );
+                },
             transitionDuration: const Duration(milliseconds: 300),
           ),
         );
@@ -1319,13 +1365,17 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
-                            _getCategoryColor(widget.pdf.category).withValues(alpha: 0.05),
+                            _getCategoryColor(
+                              widget.pdf.category,
+                            ).withValues(alpha: 0.1),
+                            _getCategoryColor(
+                              widget.pdf.category,
+                            ).withValues(alpha: 0.05),
                           ],
                         ),
                       ),
                     ),
-                    
+
                     // Content
                     Padding(
                       padding: const EdgeInsets.all(20),
@@ -1339,7 +1389,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                                  color: _getCategoryColor(
+                                    widget.pdf.category,
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Icon(
@@ -1351,9 +1403,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                               _buildModernDownloadButton(),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Download progress
                           if (_isDownloading)
                             Column(
@@ -1381,7 +1433,7 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                                 const SizedBox(height: 12),
                               ],
                             ),
-                          
+
                           // Title
                           Text(
                             widget.pdf.title,
@@ -1394,9 +1446,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          
+
                           const SizedBox(height: 8),
-                          
+
                           // Description
                           Text(
                             widget.pdf.description,
@@ -1408,21 +1460,28 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          
+
                           const Spacer(),
-                          
+
                           // Footer
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Category badge
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                                  color: _getCategoryColor(
+                                    widget.pdf.category,
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.3),
+                                    color: _getCategoryColor(
+                                      widget.pdf.category,
+                                    ).withValues(alpha: 0.3),
                                     width: 0.5,
                                   ),
                                 ),
@@ -1430,12 +1489,14 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                                   widget.pdf.category,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: _getCategoryColor(widget.pdf.category),
+                                    color: _getCategoryColor(
+                                      widget.pdf.category,
+                                    ),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                              
+
                               // Size and download status
                               Row(
                                 children: [
@@ -1444,7 +1505,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
                                       margin: const EdgeInsets.only(right: 8),
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.1),
+                                        color: Colors.green.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
@@ -1516,7 +1579,9 @@ class _ModernPdfCardState extends State<ModernPdfCard> with TickerProviderStateM
       child: IconButton(
         icon: Icon(
           _isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
-          color: _isDownloaded ? Colors.green : _getCategoryColor(widget.pdf.category),
+          color: _isDownloaded
+              ? Colors.green
+              : _getCategoryColor(widget.pdf.category),
           size: 20,
         ),
         onPressed: _isDownloaded ? _openDownloadedPdf : _downloadPdf,
@@ -1609,10 +1674,8 @@ class _PdfCardState extends State<PdfCard> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PdfViewerScreen(
-                      pdf: widget.pdf,
-                      localPath: filePath,
-                    ),
+                    builder: (context) =>
+                        PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
                   ),
                 );
               },
@@ -1642,10 +1705,8 @@ class _PdfCardState extends State<PdfCard> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PdfViewerScreen(
-            pdf: widget.pdf,
-            localPath: filePath,
-          ),
+          builder: (context) =>
+              PdfViewerScreen(pdf: widget.pdf, localPath: filePath),
         ),
       );
     }
@@ -1655,9 +1716,7 @@ class _PdfCardState extends State<PdfCard> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -1677,16 +1736,12 @@ class _PdfCardState extends State<PdfCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.picture_as_pdf,
-                    size: 48,
-                    color: Colors.red,
-                  ),
+                  const Icon(Icons.picture_as_pdf, size: 48, color: Colors.red),
                   _buildDownloadButton(),
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Download progress bar
               if (_isDownloading)
                 Column(
@@ -1706,7 +1761,7 @@ class _PdfCardState extends State<PdfCard> {
                     const SizedBox(height: 8),
                   ],
                 ),
-              
+
               // Title
               Text(
                 widget.pdf.title,
@@ -1718,27 +1773,29 @@ class _PdfCardState extends State<PdfCard> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
-              
+
               // Description
               Text(
                 widget.pdf.description,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
               const Spacer(),
-              
+
               // Category and size
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1787,22 +1844,14 @@ class _PdfCardState extends State<PdfCard> {
 
     if (_isDownloaded) {
       return IconButton(
-        icon: const Icon(
-          Icons.download_done,
-          color: Colors.green,
-          size: 20,
-        ),
+        icon: const Icon(Icons.download_done, color: Colors.green, size: 20),
         onPressed: _openDownloadedPdf,
         tooltip: 'Open downloaded PDF',
       );
     }
 
     return IconButton(
-      icon: const Icon(
-        Icons.download,
-        color: Colors.blue,
-        size: 20,
-      ),
+      icon: const Icon(Icons.download, color: Colors.blue, size: 20),
       onPressed: _downloadPdf,
       tooltip: 'Download PDF',
     );
