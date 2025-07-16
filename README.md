@@ -8,9 +8,13 @@ A Flutter application for managing and viewing PDF documents stored in Supabase.
 - 🔍 Search PDFs by title and description
 - 📂 Filter PDFs by category
 - 📄 View PDFs directly in the app
+- ⬇️ **Download PDFs for offline viewing**
+- 📱 **Manage downloaded PDFs with dedicated Downloads screen**
 - ⬆️ Upload new PDFs to Supabase Storage
 - 🗂️ Organize PDFs with categories and tags
 - 📊 Real-time updates with Supabase
+- 🔄 Progress tracking for downloads
+- 💾 Automatic offline detection
 
 ## Setup Instructions
 
@@ -59,8 +63,20 @@ PDFs are stored in a Supabase Storage bucket named `pdfs`. The bucket should be 
 2. **Search**: Use the search bar to find PDFs by title or description
 3. **Filter**: Use category chips to filter PDFs by category
 4. **View PDF**: Tap on any PDF card to open it in the viewer
-5. **Add PDF**: Tap the + button to upload a new PDF
-6. **Categories**: PDFs can be organized into categories: Business, Education, Technology, Science, Health, Entertainment, Other
+5. **Download PDF**: Tap the download icon on any PDF card to save it for offline viewing
+6. **Manage Downloads**: Use the Downloads button in the app bar to view and manage downloaded PDFs
+7. **Offline Viewing**: Downloaded PDFs can be viewed without an internet connection
+8. **Add PDF**: Tap the + button to upload a new PDF
+9. **Categories**: PDFs can be organized into categories: Business, Education, Technology, Science, Health, Entertainment, Other
+
+### Download Features
+
+- **Progressive Download**: Real-time progress tracking with percentage and progress bar
+- **Offline Viewing**: Downloaded PDFs are stored locally and can be viewed without internet
+- **Download Management**: Dedicated Downloads screen to manage all downloaded files
+- **Storage Info**: View download location and file sizes
+- **Delete Downloads**: Remove downloaded files to free up space
+- **Download Status**: Visual indicators show which PDFs are downloaded
 
 ## Dependencies
 
@@ -68,6 +84,9 @@ PDFs are stored in a Supabase Storage bucket named `pdfs`. The bucket should be 
 - `syncfusion_flutter_pdfviewer`: PDF viewer widget
 - `provider`: State management
 - `file_picker`: File selection
+- `path_provider`: File system paths
+- `dio`: HTTP client for downloads
+- `permission_handler`: Storage permissions
 - `cached_network_image`: Image caching
 - `flutter_spinkit`: Loading animations
 
@@ -84,9 +103,11 @@ lib/
 ├── screens/
 │   ├── pdf_store_screen.dart    # Main PDF list screen
 │   ├── pdf_viewer_screen.dart   # PDF viewer screen
-│   └── add_pdf_screen.dart      # Add new PDF screen
+│   ├── add_pdf_screen.dart      # Add new PDF screen
+│   └── downloads_screen.dart    # Downloaded PDFs management
 ├── services/
-│   └── pdf_service.dart         # Supabase API service
+│   ├── pdf_service.dart         # Supabase API service
+│   └── download_service.dart    # Download management service
 └── main.dart                    # App entry point
 ```
 

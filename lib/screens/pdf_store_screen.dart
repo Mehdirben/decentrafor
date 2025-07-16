@@ -4,6 +4,8 @@ import '../providers/pdf_provider.dart';
 import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../screens/add_pdf_screen.dart';
+import '../screens/downloads_screen.dart';
+import '../services/download_service.dart';
 
 class PdfStoreScreen extends StatefulWidget {
   const PdfStoreScreen({super.key});
@@ -31,6 +33,16 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DownloadsScreen()),
+              );
+            },
+            tooltip: 'Downloads',
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
               Navigator.push(
@@ -38,6 +50,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> {
                 MaterialPageRoute(builder: (context) => const AddPdfScreen()),
               );
             },
+            tooltip: 'Add PDF',
           ),
         ],
       ),
@@ -176,10 +189,110 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> {
   }
 }
 
-class PdfCard extends StatelessWidget {
+class PdfCard extends StatefulWidget {
   final PdfDocument pdf;
 
   const PdfCard({super.key, required this.pdf});
+
+  @override
+  State<PdfCard> createState() => _PdfCardState();
+}
+
+class _PdfCardState extends State<PdfCard> {
+  bool _isDownloading = false;
+  bool _isDownloaded = false;
+  double _downloadProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDownloadStatus();
+  }
+
+  Future<void> _checkDownloadStatus() async {
+    final isDownloaded = await DownloadService.isPdfDownloaded(widget.pdf);
+    if (mounted) {
+      setState(() {
+        _isDownloaded = isDownloaded;
+      });
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+
+    try {
+      final filePath = await DownloadService.downloadPdf(
+        widget.pdf,
+        onProgress: (received, total) {
+          if (mounted) {
+            setState(() {
+              _downloadProgress = received / total;
+            });
+          }
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _isDownloaded = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF downloaded successfully'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PdfViewerScreen(
+                      pdf: widget.pdf,
+                      localPath: filePath,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openDownloadedPdf() async {
+    final filePath = await DownloadService.getDownloadedPdfPath(widget.pdf);
+    if (filePath != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfViewerScreen(
+            pdf: widget.pdf,
+            localPath: filePath,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +306,7 @@ class PdfCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PdfViewerScreen(pdf: pdf),
+              builder: (context) => PdfViewerScreen(pdf: widget.pdf),
             ),
           );
         },
@@ -203,19 +316,43 @@ class PdfCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // PDF icon
-              const Center(
-                child: Icon(
-                  Icons.picture_as_pdf,
-                  size: 48,
-                  color: Colors.red,
-                ),
+              // PDF icon and download button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Icon(
+                    Icons.picture_as_pdf,
+                    size: 48,
+                    color: Colors.red,
+                  ),
+                  _buildDownloadButton(),
+                ],
               ),
               const SizedBox(height: 12),
               
+              // Download progress bar
+              if (_isDownloading)
+                Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: _downloadProgress,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${(_downloadProgress * 100).toInt()}%',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              
               // Title
               Text(
-                pdf.title,
+                widget.pdf.title,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -227,7 +364,7 @@ class PdfCard extends StatelessWidget {
               
               // Description
               Text(
-                pdf.description,
+                widget.pdf.description,
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.grey,
@@ -248,19 +385,30 @@ class PdfCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      pdf.category,
+                      widget.pdf.category,
                       style: TextStyle(
                         fontSize: 10,
                         color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ),
-                  Text(
-                    '${(pdf.fileSize / 1024 / 1024).toStringAsFixed(1)} MB',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey,
-                    ),
+                  Row(
+                    children: [
+                      if (_isDownloaded)
+                        const Icon(
+                          Icons.download_done,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(widget.pdf.fileSize / 1024 / 1024).toStringAsFixed(1)} MB',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -268,6 +416,38 @@ class PdfCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDownloadButton() {
+    if (_isDownloading) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+
+    if (_isDownloaded) {
+      return IconButton(
+        icon: const Icon(
+          Icons.download_done,
+          color: Colors.green,
+          size: 20,
+        ),
+        onPressed: _openDownloadedPdf,
+        tooltip: 'Open downloaded PDF',
+      );
+    }
+
+    return IconButton(
+      icon: const Icon(
+        Icons.download,
+        color: Colors.blue,
+        size: 20,
+      ),
+      onPressed: _downloadPdf,
+      tooltip: 'Download PDF',
     );
   }
 }
