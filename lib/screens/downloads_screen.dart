@@ -146,6 +146,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             floating: false,
             pinned: true,
             backgroundColor: const Color(0xFF667EEA),
+            foregroundColor: Colors.white,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               title: const Text(
