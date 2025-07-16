@@ -62,34 +62,6 @@ class _AuthenticatedStorageScreenState extends State<AuthenticatedStorageScreen>
     }
   }
 
-  Future<void> _signOut() async {
-    try {
-      await AuthService.signOut();
-      setState(() {
-        _isAuthenticated = false;
-        _isAdmin = false;
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Signed out successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sign out: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -159,15 +131,9 @@ class _AuthenticatedStorageScreenState extends State<AuthenticatedStorageScreen>
       );
     }
 
-    // User is authenticated and is admin, show storage screen with logout option
-    return Scaffold(
-      body: const StorageScreen(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _signOut,
-        tooltip: 'Sign Out',
-        backgroundColor: Colors.red,
-        child: const Icon(Icons.logout, color: Colors.white),
-      ),
+    // User is authenticated and is admin, show storage screen
+    return const Scaffold(
+      body: StorageScreen(),
     );
   }
 }
