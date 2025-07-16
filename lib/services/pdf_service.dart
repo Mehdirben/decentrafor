@@ -53,19 +53,25 @@ class PdfService {
   // Upload PDF file to Supabase Storage
   static Future<String> uploadPdf(File file, String fileName) async {
     try {
-      final String filePath = 'pdfs/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+      // Create a unique filename to avoid conflicts
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = fileName.split('.').last;
+      final uniqueFileName = '${fileName.replaceAll('.pdf', '')}_$timestamp.$fileExtension';
+      final filePath = 'pdfs/$uniqueFileName';
       
+      // Upload the file to Supabase Storage
       await _client.storage
           .from(SupabaseConfig.pdfBucketName)
           .upload(filePath, file);
       
+      // Get the public URL
       final String publicUrl = _client.storage
           .from(SupabaseConfig.pdfBucketName)
           .getPublicUrl(filePath);
       
       return publicUrl;
     } catch (e) {
-      throw Exception('Failed to upload PDF: $e');
+      throw Exception('Failed to upload PDF to Supabase Storage: $e');
     }
   }
 
@@ -105,6 +111,27 @@ class PdfService {
   // Delete PDF
   static Future<void> deletePdf(String id) async {
     try {
+      // First, get the PDF info to extract the file path
+      final response = await _client
+          .from('pdfs')
+          .select('file_url')
+          .eq('id', id)
+          .single();
+      
+      final String fileUrl = response['file_url'];
+      
+      // Extract the file path from the URL
+      // URL format: https://[project-id].supabase.co/storage/v1/object/public/pdfs/filename
+      if (fileUrl.contains('supabase.co/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/')) {
+        final filePath = fileUrl.split('${SupabaseConfig.pdfBucketName}/').last;
+        
+        // Delete the file from storage
+        await _client.storage
+            .from(SupabaseConfig.pdfBucketName)
+            .remove(['pdfs/$filePath']);
+      }
+      
+      // Delete the record from the database
       await _client
           .from('pdfs')
           .delete()
