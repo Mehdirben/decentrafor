@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 import '../models/pdf_document.dart';
 
@@ -12,12 +11,23 @@ class DownloadService {
   // Get the downloads directory
   static Future<Directory> _getDownloadDirectory() async {
     if (Platform.isAndroid) {
-      // For Android, use the Downloads directory
-      final directory = Directory('/storage/emulated/0/Download/$_downloadFolder');
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
+      // Use app-specific external storage directory (doesn't require permissions)
+      final directory = await getExternalStorageDirectory();
+      if (directory != null) {
+        final downloadDir = Directory('${directory.path}/$_downloadFolder');
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+        return downloadDir;
+      } else {
+        // Fallback to app documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        final downloadDir = Directory('${directory.path}/$_downloadFolder');
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+        return downloadDir;
       }
-      return directory;
     } else {
       // For iOS and other platforms, use app documents directory
       final directory = await getApplicationDocumentsDirectory();
@@ -31,13 +41,15 @@ class DownloadService {
 
   // Check if storage permission is granted
   static Future<bool> _checkStoragePermission() async {
+    // Since we're using app-specific storage, we don't need permissions
+    // But we can still check if external storage is available
     if (Platform.isAndroid) {
-      final status = await Permission.storage.status;
-      if (status.isDenied) {
-        final result = await Permission.storage.request();
-        return result.isGranted;
+      try {
+        final directory = await getExternalStorageDirectory();
+        return directory != null;
+      } catch (e) {
+        return false;
       }
-      return status.isGranted;
     }
     return true; // iOS doesn't need storage permission for app documents
   }
