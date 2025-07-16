@@ -85,7 +85,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                   child: Container(
                     height:
                         MediaQuery.of(context).size.height *
-                        0.28, // Responsive height
+                        0.22, // Reduced height from 0.28 to 0.22
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -600,11 +600,16 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           color: const Color(0xFF667EEA),
         ),
         const SizedBox(width: 12),
-        _buildStatCard(
-          icon: Icons.download_done_rounded,
-          label: 'Downloaded',
-          value: '${pdfProvider.pdfs.length}', // Remove filter for now
-          color: const Color(0xFF10B981),
+        FutureBuilder<int>(
+          future: _getDownloadedCount(pdfProvider.pdfs),
+          builder: (context, snapshot) {
+            return _buildStatCard(
+              icon: Icons.download_done_rounded,
+              label: 'Downloaded',
+              value: snapshot.data?.toString() ?? '0',
+              color: const Color(0xFF10B981),
+            );
+          },
         ),
         const SizedBox(width: 12),
         _buildStatCard(
@@ -615,6 +620,15 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
         ),
       ],
     );
+  }
+
+  Future<int> _getDownloadedCount(List<PdfDocument> pdfs) async {
+    int count = 0;
+    for (final pdf in pdfs) {
+      final isDownloaded = await DownloadService.isPdfDownloaded(pdf);
+      if (isDownloaded) count++;
+    }
+    return count;
   }
 
   Widget _buildStatCard({
