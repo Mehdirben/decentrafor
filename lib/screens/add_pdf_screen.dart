@@ -598,81 +598,92 @@ class _AddPdfScreenState extends State<AddPdfScreen> {
                       onTap: _pickThumbnail,
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
-                        height: 120,
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
-                        child: Center(
-                          child: _selectedThumbnail == null
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primary.withOpacity(0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.image_outlined,
-                                        size: 24,
-                                        color: colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Select Thumbnail',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Tap to select a thumbnail image for the PDF',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurface.withOpacity(0.7),
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                )
-                              : Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.file(
-                                        _selectedThumbnail!,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: GestureDetector(
-                                        onTap: _removeThumbnail,
-                                        child: Container(
-                                          width: 32,
-                                          height: 32,
+                        child: AspectRatio(
+                          aspectRatio: 1 / 1.414, // A4 format (width/height)
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _selectedThumbnail != null 
+                                    ? colorScheme.primary.withOpacity(0.3)
+                                    : colorScheme.outline.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: _selectedThumbnail == null
+                                  ? Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
                                           decoration: BoxDecoration(
-                                            color: Colors.red.shade600,
+                                            color: colorScheme.primary.withOpacity(0.1),
                                             shape: BoxShape.circle,
                                           ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 20,
+                                          child: Icon(
+                                            Icons.image_outlined,
+                                            size: 24,
+                                            color: colorScheme.primary,
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Select Thumbnail',
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Tap to select a thumbnail image for the PDF',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: colorScheme.onSurface.withOpacity(0.7),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    )
+                                  : Stack(
+                                      children: [
+                                        Image.file(
+                                          _selectedThumbnail!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                        ),
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: GestureDetector(
+                                            onTap: _removeThumbnail,
+                                            child: Container(
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.shade600,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
