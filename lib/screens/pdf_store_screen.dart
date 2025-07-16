@@ -322,13 +322,11 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           backgroundColor: const Color(0xFF667EEA),
           foregroundColor: Colors.white,
           elevation: 8,
-          child: AnimatedRotation(
-            turns: _isFabExpanded
-                ? 0.125
-                : 0.0, // 45 degree rotation when expanded
+          child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Icon(
               _isFabExpanded ? Icons.close_rounded : Icons.menu_rounded,
+              key: ValueKey(_isFabExpanded),
             ),
           ),
         ),
