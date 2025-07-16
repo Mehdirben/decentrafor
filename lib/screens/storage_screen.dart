@@ -307,26 +307,30 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                   ),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Storage Dashboard',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Storage Dashboard',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F2937),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      'Manage your PDF storage and database',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
+                      Text(
+                        'Manage your PDF storage and database',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -339,35 +343,68 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
   }
 
   Widget _buildStorageStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            title: 'Total Files',
-            value: '${_storageInfo['fileCount'] ?? 0}',
-            icon: Icons.folder,
-            color: const Color(0xFF10B981),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'Storage Used',
-            value: _storageInfo['totalSizeFormatted'] ?? '0 B',
-            icon: Icons.storage,
-            color: const Color(0xFF8B5CF6),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'PDF Count',
-            value: '${_allPdfs.length}',
-            icon: Icons.picture_as_pdf,
-            color: const Color(0xFFF59E0B),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          // On small screens, use a column layout
+          return Column(
+            children: [
+              _buildStatCard(
+                title: 'Total Files',
+                value: '${_storageInfo['fileCount'] ?? 0}',
+                icon: Icons.folder,
+                color: const Color(0xFF10B981),
+              ),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                title: 'Storage Used',
+                value: _storageInfo['totalSizeFormatted'] ?? '0 B',
+                icon: Icons.storage,
+                color: const Color(0xFF8B5CF6),
+              ),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                title: 'PDF Count',
+                value: '${_allPdfs.length}',
+                icon: Icons.picture_as_pdf,
+                color: const Color(0xFFF59E0B),
+              ),
+            ],
+          );
+        } else {
+          // On larger screens, use a row layout
+          return Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Total Files',
+                  value: '${_storageInfo['fileCount'] ?? 0}',
+                  icon: Icons.folder,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Storage Used',
+                  value: _storageInfo['totalSizeFormatted'] ?? '0 B',
+                  icon: Icons.storage,
+                  color: const Color(0xFF8B5CF6),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'PDF Count',
+                  value: '${_allPdfs.length}',
+                  icon: Icons.picture_as_pdf,
+                  color: const Color(0xFFF59E0B),
+                ),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -405,12 +442,15 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
+              Flexible(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -538,12 +578,15 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
           child: Icon(icon, color: const Color(0xFF2563EB), size: 20),
         ),
         const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -700,7 +743,7 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -733,6 +776,8 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1F2937),
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
             const SizedBox(height: 4),
             Text(
@@ -742,6 +787,8 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w400,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
           ],
         ),
@@ -797,6 +844,7 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1F2937),
               ),
+              overflow: TextOverflow.ellipsis,
             ),
             subtitle: Text(
               isSuccess ? 'Uploaded successfully' : 'Failed: ${result['error']}',
@@ -804,6 +852,8 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 fontSize: 13,
                 color: Colors.grey[600],
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
           );
         },
@@ -885,6 +935,8 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1F2937),
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,21 +946,27 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                   children: [
                     Icon(Icons.folder, size: 16, color: Colors.grey[500]),
                     const SizedBox(width: 4),
-                    Text(
-                      pdf.category,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
+                    Flexible(
+                      child: Text(
+                        pdf.category,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Icon(Icons.data_usage, size: 16, color: Colors.grey[500]),
                     const SizedBox(width: 4),
-                    Text(
-                      pdf.sizeFormatted,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
+                    Flexible(
+                      child: Text(
+                        pdf.sizeFormatted,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -918,11 +976,14 @@ class _StorageScreenState extends State<StorageScreen> with TickerProviderStateM
                   children: [
                     Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
                     const SizedBox(width: 4),
-                    Text(
-                      pdf.createdAt.toString().split(' ')[0],
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
+                    Flexible(
+                      child: Text(
+                        pdf.createdAt.toString().split(' ')[0],
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
