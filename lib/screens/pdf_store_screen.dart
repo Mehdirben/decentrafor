@@ -921,7 +921,7 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
                 borderRadius: BorderRadius.circular(16),
                 child: Row(
                   children: [
-                    // Left side - PDF icon and category color
+                    // Left side - PDF thumbnail or icon
                     Container(
                       width: 80,
                       decoration: BoxDecoration(
@@ -939,20 +939,7 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
                         ),
                       ),
                       child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: _getCategoryColor(
-                              widget.pdf.category,
-                            ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.picture_as_pdf_rounded,
-                            size: 32,
-                            color: _getCategoryColor(widget.pdf.category),
-                          ),
-                        ),
+                        child: _buildThumbnail(),
                       ),
                     ),
 
@@ -1106,6 +1093,59 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    if (widget.pdf.thumbnailUrl != null && widget.pdf.thumbnailUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          widget.pdf.thumbnailUrl!,
+          width: 60,
+          height: 80,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: 60,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getCategoryColor(widget.pdf.category),
+                  ),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return _buildFallbackIcon();
+          },
+        ),
+      );
+    } else {
+      return _buildFallbackIcon();
+    }
+  }
+
+  Widget _buildFallbackIcon() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.picture_as_pdf_rounded,
+        size: 32,
+        color: _getCategoryColor(widget.pdf.category),
       ),
     );
   }
@@ -1420,11 +1460,7 @@ class _ModernPdfCardState extends State<ModernPdfCard>
                                   ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Icon(
-                                  Icons.picture_as_pdf_rounded,
-                                  size: 32,
-                                  color: _getCategoryColor(widget.pdf.category),
-                                ),
+                                child: _buildThumbnail(),
                               ),
                               _buildModernDownloadButton(),
                             ],
@@ -1564,6 +1600,52 @@ class _ModernPdfCardState extends State<ModernPdfCard>
           );
         },
       ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    if (widget.pdf.thumbnailUrl != null && widget.pdf.thumbnailUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          widget.pdf.thumbnailUrl!,
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getCategoryColor(widget.pdf.category),
+                  ),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return _buildFallbackIcon();
+          },
+        ),
+      );
+    } else {
+      return _buildFallbackIcon();
+    }
+  }
+
+  Widget _buildFallbackIcon() {
+    return Icon(
+      Icons.picture_as_pdf_rounded,
+      size: 32,
+      color: _getCategoryColor(widget.pdf.category),
     );
   }
 
