@@ -924,23 +924,7 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
                     // Left side - PDF thumbnail or icon
                     Container(
                       width: 80,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            _getCategoryColor(
-                              widget.pdf.category,
-                            ).withValues(alpha: 0.1),
-                            _getCategoryColor(
-                              widget.pdf.category,
-                            ).withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
-                      child: Center(
-                        child: _buildThumbnail(),
-                      ),
+                      child: _buildThumbnail(),
                     ),
 
                     // Middle - Content
@@ -1100,20 +1084,20 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
   Widget _buildThumbnail() {
     if (widget.pdf.thumbnailUrl != null && widget.pdf.thumbnailUrl!.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Image.network(
           widget.pdf.thumbnailUrl!,
-          width: 60,
-          height: 80,
+          width: 80,
+          height: 120,
           fit: BoxFit.cover,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return Container(
-              width: 60,
-              height: 80,
+              width: 80,
+              height: 120,
               decoration: BoxDecoration(
                 color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
                 child: CircularProgressIndicator(
@@ -1137,15 +1121,18 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
 
   Widget _buildFallbackIcon() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: 80,
+      height: 120,
       decoration: BoxDecoration(
         color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(
-        Icons.picture_as_pdf_rounded,
-        size: 32,
-        color: _getCategoryColor(widget.pdf.category),
+      child: Center(
+        child: Icon(
+          Icons.picture_as_pdf_rounded,
+          size: 32,
+          color: _getCategoryColor(widget.pdf.category),
+        ),
       ),
     );
   }
@@ -1609,14 +1596,14 @@ class _ModernPdfCardState extends State<ModernPdfCard>
         borderRadius: BorderRadius.circular(16),
         child: Image.network(
           widget.pdf.thumbnailUrl!,
-          width: 44,
-          height: 44,
+          width: 56,
+          height: 56,
           fit: BoxFit.cover,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return Container(
-              width: 44,
-              height: 44,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
@@ -1642,10 +1629,19 @@ class _ModernPdfCardState extends State<ModernPdfCard>
   }
 
   Widget _buildFallbackIcon() {
-    return Icon(
-      Icons.picture_as_pdf_rounded,
-      size: 32,
-      color: _getCategoryColor(widget.pdf.category),
+    return Container(
+      width: 56,
+      height: 56,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getCategoryColor(widget.pdf.category).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(
+        Icons.picture_as_pdf_rounded,
+        size: 32,
+        color: _getCategoryColor(widget.pdf.category),
+      ),
     );
   }
 
