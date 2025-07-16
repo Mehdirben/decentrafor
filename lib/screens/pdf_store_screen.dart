@@ -93,26 +93,34 @@ class _PdfStoreScreenState extends State<PdfStoreScreen> with TickerProviderStat
                             // Content
                             SafeArea(
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 110, 24, 40), // Adjusted for app bar
+                                padding: const EdgeInsets.fromLTRB(24, 100, 24, 10), // Minimal padding
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'PDF Library',
-                                      style: TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        letterSpacing: -0.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Discover and organize your documents',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Text(
+                                            'PDF Library',
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: -0.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Discover and organize your documents',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.white.withValues(alpha: 0.9),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
