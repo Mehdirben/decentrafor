@@ -142,7 +142,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         slivers: [
           // Modern App Bar
           SliverAppBar(
-            expandedHeight: 160,
+            expandedHeight: 120,
             floating: false,
             pinned: true,
             backgroundColor: const Color(0xFF667EEA),
@@ -153,9 +153,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                  fontSize: 22,
                 ),
               ),
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -172,34 +174,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                         painter: GeometricPatternPainter(),
                       ),
                     ),
-                    // Content
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20),
-                            Text(
-                              'Your offline library',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_downloadedPdfs.length} downloaded PDF(s)',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -214,89 +188,86 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
           // Content with proper spacing
           SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -10),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Storage location section
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.folder_rounded,
-                            color: Color(0xFF10B981),
-                            size: 20,
-                          ),
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Storage location section
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Storage Location',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          color: Color(0xFF10B981),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Storage Location',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _downloadPath ?? 'Loading...',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _downloadPath ?? 'Loading...',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
                               ),
-                            ],
-                          ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Statistics row
-                    Row(
-                      children: [
-                        _buildStatCard(
-                          icon: Icons.download_done_rounded,
-                          label: 'Downloaded',
-                          value: _downloadedPdfs.length.toString(),
-                          color: const Color(0xFF10B981),
-                        ),
-                        const SizedBox(width: 12),
-                        _buildStatCard(
-                          icon: Icons.storage_rounded,
-                          label: 'Storage',
-                          value: _getTotalStorageSize(),
-                          color: const Color(0xFF8B5CF6),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Statistics row
+                  Row(
+                    children: [
+                      _buildStatCard(
+                        icon: Icons.download_done_rounded,
+                        label: 'Downloaded',
+                        value: _downloadedPdfs.length.toString(),
+                        color: const Color(0xFF10B981),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildStatCard(
+                        icon: Icons.storage_rounded,
+                        label: 'Storage',
+                        value: _getTotalStorageSize(),
+                        color: const Color(0xFF8B5CF6),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
