@@ -39,114 +39,283 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.category.name),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          // Username display
-          Consumer<UsernameProvider>(
-            builder: (context, usernameProvider, child) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 140,
+              floating: false,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1F2937),
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  widget.category.name,
+                  style: TextStyle(
+                    color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    ),
+                  ),
+                  child: Stack(
                     children: [
-                      const Icon(Icons.person, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        usernameProvider.currentUsername ?? 'User',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+                      // Background pattern
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: GeometricPatternPainter(),
                         ),
                       ),
+                      // Safe area for content
+                      const SafeArea(child: SizedBox.expand()),
                     ],
                   ),
                 ),
-              );
-            },
+              ),
+              actions: [
+                // Username display
+                Consumer<UsernameProvider>(
+                  builder: (context, usernameProvider, child) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.person_rounded, size: 16, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(
+                            usernameProvider.currentUsername ?? 'User',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ];
+        },
+        body: Consumer<ForumProvider>(
+          builder: (context, forumProvider, child) {
+            if (forumProvider.isLoading) {
+              return _buildLoadingState();
+            }
+
+            if (forumProvider.error != null) {
+              return _buildErrorState(forumProvider);
+            }
+
+            return Column(
+              children: [
+                _buildCategoryHeader(context),
+                Expanded(
+                  child: forumProvider.topics.isEmpty
+                      ? _buildEmptyState(context)
+                      : RefreshIndicator(
+                          onRefresh: () => forumProvider.loadTopics(widget.category.id),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(20),
+                            itemCount: forumProvider.topics.length,
+                            itemBuilder: (context, index) {
+                              final topic = forumProvider.topics[index];
+                              return _buildTopicCard(context, topic);
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF667EEA).withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CreateTopicScreen(
+                  categoryId: widget.category.id,
+                  categoryName: widget.category.name,
+                ),
+              ),
+            );
+            
+            if (result == true) {
+              // Refresh topics
+              if (mounted) {
+                context.read<ForumProvider>().loadTopics(widget.category.id);
+              }
+            }
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Column(
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading topics...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => CreateTopicScreen(
-                categoryId: widget.category.id,
-                categoryName: widget.category.name,
-              ),
-            ),
-          );
-          
-          if (result == true) {
-            // Refresh topics
-            if (mounted) {
-              context.read<ForumProvider>().loadTopics(widget.category.id);
-            }
-          }
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: Consumer<ForumProvider>(
-        builder: (context, forumProvider, child) {
-          if (forumProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    );
+  }
 
-          if (forumProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading topics',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    forumProvider.error!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => forumProvider.loadTopics(widget.category.id),
-                    child: const Text('Retry'),
-                  ),
+  Widget _buildErrorState(ForumProvider forumProvider) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFEF4444).withOpacity(0.1),
+                  const Color(0xFFDC2626).withOpacity(0.1),
                 ],
               ),
-            );
-          }
-
-          return Column(
-            children: [
-              _buildCategoryHeader(context),
-              Expanded(
-                child: forumProvider.topics.isEmpty
-                    ? _buildEmptyState(context)
-                    : RefreshIndicator(
-                        onRefresh: () => forumProvider.loadTopics(widget.category.id),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: forumProvider.topics.length,
-                          itemBuilder: (context, index) {
-                            final topic = forumProvider.topics[index];
-                            return _buildTopicCard(context, topic);
-                          },
-                        ),
-                      ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: Color(0xFFEF4444),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Error loading topics',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            forumProvider.error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
               ),
-            ],
-          );
-        },
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF667EEA).withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () => forumProvider.loadTopics(widget.category.id),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Retry',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -154,35 +323,40 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
   Widget _buildCategoryHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.category.description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6B7280),
+              height: 1.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               _buildStatChip(
-                context,
-                Icons.topic,
+                Icons.topic_rounded,
                 '${widget.category.topicsCount} topics',
               ),
               const SizedBox(width: 12),
               _buildStatChip(
-                context,
-                Icons.chat_bubble_outline,
+                Icons.chat_bubble_outline_rounded,
                 '${widget.category.postsCount} posts',
               ),
             ],
@@ -192,24 +366,35 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
     );
   }
 
-  Widget _buildStatChip(BuildContext context, IconData icon, String text) {
+  Widget _buildStatChip(IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+          Icon(icon, size: 16, color: Colors.white),
           const SizedBox(width: 6),
           Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -218,45 +403,97 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
+    return Container(
+      padding: const EdgeInsets.all(40),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No topics yet',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Be the first to start a discussion!',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[600],
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF667EEA).withOpacity(0.1),
+                  const Color(0xFF764BA2).withOpacity(0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 48,
+              color: Color(0xFF667EEA),
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final result = await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CreateTopicScreen(
-                    categoryId: widget.category.id,
-                    categoryName: widget.category.name,
-                  ),
+          const Text(
+            'No topics yet',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Be the first to start a discussion!',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF667EEA).withOpacity(0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
                 ),
-              );
-              
-              if (result == true && mounted) {
-                context.read<ForumProvider>().loadTopics(widget.category.id);
-              }
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Create Topic'),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => CreateTopicScreen(
+                      categoryId: widget.category.id,
+                      categoryName: widget.category.name,
+                    ),
+                  ),
+                );
+                
+                if (result == true && mounted) {
+                  context.read<ForumProvider>().loadTopics(widget.category.id);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text(
+                'Create Topic',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -264,10 +501,21 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
   }
 
   Widget _buildTopicCard(BuildContext context, ForumTopic topic) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -276,160 +524,163 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  if (topic.isPinned)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.push_pin, size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Pinned',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+              if (topic.isPinned || topic.isLocked)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      if (topic.isPinned)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                    ),
-                  if (topic.isLocked)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lock, size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Locked',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.push_pin_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'Pinned',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (topic.isPinned && topic.isLocked) const SizedBox(width: 8),
+                      if (topic.isLocked)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              if (topic.isPinned || topic.isLocked) const SizedBox(height: 8),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'Locked',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               Text(
                 topic.title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: const TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 topic.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                  height: 1.5,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      topic.authorName.isNotEmpty ? topic.authorName[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        topic.authorName.isNotEmpty ? topic.authorName[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           topic.authorName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           _formatDate(topic.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF9CA3AF),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${topic.postsCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.visibility, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${topic.viewsCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  _buildStatBadge(Icons.chat_bubble_outline_rounded, '${topic.postsCount}'),
+                  const SizedBox(width: 12),
+                  _buildStatBadge(Icons.visibility_outlined, '${topic.viewsCount}'),
                   // Admin delete button
                   FutureBuilder<bool>(
                     future: _isAdminWithFeatures(),
                     builder: (context, snapshot) {
                       if (snapshot.hasData && snapshot.data == true) {
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                            onPressed: () => _showDeleteTopicDialog(context, topic),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 24,
-                              minHeight: 24,
+                        return Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          child: InkWell(
+                            onTap: () => _showDeleteTopicDialog(context, topic),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 16,
+                                color: Color(0xFFEF4444),
+                              ),
                             ),
                           ),
                         );
@@ -442,6 +693,31 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(IconData icon, String count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 4),
+          Text(
+            count,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6B7280),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -509,4 +785,33 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
       return 'Just now';
     }
   }
+}
+
+class GeometricPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    
+    // Create geometric pattern
+    for (int i = 0; i < size.width; i += 40) {
+      for (int j = 0; j < size.height; j += 40) {
+        // Diamond pattern
+        path.moveTo(i + 20, j.toDouble());
+        path.lineTo(i + 40, j + 20);
+        path.lineTo(i + 20, j + 40);
+        path.lineTo(i.toDouble(), j + 20);
+        path.close();
+      }
+    }
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

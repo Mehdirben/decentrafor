@@ -59,59 +59,139 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search Topics'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 160,
+              floating: false,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1F2937),
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'Search Topics',
+                  style: TextStyle(
+                    color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                 ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search topics...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _performSearch('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Background pattern
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: GeometricPatternPainter(),
+                        ),
+                      ),
+                      // Safe area for content
+                      const SafeArea(child: SizedBox.expand()),
+                    ],
+                  ),
                 ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.background,
               ),
-              onChanged: (value) {
-                setState(() {}); // To update the clear button
-                if (value.length >= 3) {
-                  _performSearch(value);
-                } else if (value.isEmpty) {
-                  _performSearch('');
-                }
-              },
-              onSubmitted: _performSearch,
             ),
-          ),
-          Expanded(
-            child: _buildSearchContent(),
+          ];
+        },
+        body: Column(
+          children: [
+            _buildSearchHeader(),
+            Expanded(
+              child: _buildSearchContent(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _searchController.text.isNotEmpty 
+                ? const Color(0xFF667EEA) 
+                : const Color(0xFFE5E7EB),
+            width: 2,
+          ),
+        ),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search topics...',
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+            prefixIcon: Container(
+              padding: const EdgeInsets.all(12),
+              child: Icon(
+                Icons.search_rounded,
+                color: _searchController.text.isNotEmpty 
+                    ? const Color(0xFF667EEA) 
+                    : const Color(0xFF9CA3AF),
+                size: 20,
+              ),
+            ),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? Container(
+                    padding: const EdgeInsets.all(4),
+                    child: IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF667EEA),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.clear_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        _performSearch('');
+                      },
+                    ),
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          ),
+          onChanged: (value) {
+            setState(() {}); // To update the border color and clear button
+            if (value.length >= 3) {
+              _performSearch(value);
+            } else if (value.isEmpty) {
+              _performSearch('');
+            }
+          },
+          onSubmitted: _performSearch,
+        ),
       ),
     );
   }
@@ -119,20 +199,50 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
   Widget _buildSearchContent() {
     if (_searchController.text.isEmpty) {
       return _buildEmptyState(
-        icon: Icons.search,
+        icon: Icons.search_rounded,
         title: 'Search Topics',
         subtitle: 'Enter at least 3 characters to search for topics',
+        showSearchTips: true,
       );
     }
 
     if (_isSearching) {
-      return const Center(
+      return Container(
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Searching...'),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Column(
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+                    strokeWidth: 3,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Searching...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -140,14 +250,15 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
 
     if (_searchResults.isEmpty) {
       return _buildEmptyState(
-        icon: Icons.search_off,
+        icon: Icons.search_off_rounded,
         title: 'No Results Found',
         subtitle: 'Try different keywords or check your spelling',
+        showSearchTips: false,
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final topic = _searchResults[index];
@@ -160,39 +271,113 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
+    required bool showSearchTips,
   }) {
-    return Center(
+    return Container(
+      padding: const EdgeInsets.all(40),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 64,
-            color: Colors.grey[400],
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF667EEA).withOpacity(0.1),
+                  const Color(0xFF764BA2).withOpacity(0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              icon,
+              size: 48,
+              color: const Color(0xFF667EEA),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[600],
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6B7280),
             ),
             textAlign: TextAlign.center,
           ),
+          if (showSearchTips) ...[
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Search Tips:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    '• Use specific keywords related to your topic\n'
+                    '• Try different combinations of words\n'
+                    '• Search for author names or specific terms\n'
+                    '• Use shorter, more general terms for broader results',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildTopicCard(BuildContext context, ForumTopic topic) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -201,151 +386,172 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  if (topic.isPinned)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.push_pin, size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Pinned',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+              if (topic.isPinned || topic.isLocked)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      if (topic.isPinned)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                    ),
-                  if (topic.isLocked)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lock, size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Locked',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.push_pin_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'Pinned',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (topic.isPinned && topic.isLocked) const SizedBox(width: 8),
+                      if (topic.isLocked)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              if (topic.isPinned || topic.isLocked) const SizedBox(height: 8),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'Locked',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               Text(
                 topic.title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: const TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 topic.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                  height: 1.5,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      topic.authorName.isNotEmpty ? topic.authorName[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        topic.authorName.isNotEmpty ? topic.authorName[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           topic.authorName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           _formatDate(topic.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF9CA3AF),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${topic.postsCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.visibility, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${topic.viewsCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  _buildStatBadge(Icons.chat_bubble_outline_rounded, '${topic.postsCount}'),
+                  const SizedBox(width: 12),
+                  _buildStatBadge(Icons.visibility_outlined, '${topic.viewsCount}'),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(IconData icon, String count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 4),
+          Text(
+            count,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6B7280),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -364,4 +570,33 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
       return 'Just now';
     }
   }
+}
+
+class GeometricPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    
+    // Create geometric pattern
+    for (int i = 0; i < size.width; i += 40) {
+      for (int j = 0; j < size.height; j += 40) {
+        // Diamond pattern
+        path.moveTo(i + 20, j.toDouble());
+        path.lineTo(i + 40, j + 20);
+        path.lineTo(i + 20, j + 40);
+        path.lineTo(i.toDouble(), j + 20);
+        path.close();
+      }
+    }
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
