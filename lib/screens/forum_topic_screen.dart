@@ -1136,7 +1136,7 @@ class _ForumTopicScreenState extends State<ForumTopicScreen> {
 
   Widget _buildReplySection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
