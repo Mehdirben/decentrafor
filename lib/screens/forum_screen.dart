@@ -287,6 +287,23 @@ class _ForumScreenState extends State<ForumScreen> {
                   ],
                 ),
               ),
+              // Admin delete button
+              Consumer<UsernameProvider>(
+                builder: (context, usernameProvider, child) {
+                  if (usernameProvider.isAdmin) {
+                    return IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      onPressed: () => _showDeleteCategoryDialog(context, category),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               const Icon(Icons.chevron_right),
             ],
           ),
@@ -446,6 +463,55 @@ class _ForumScreenState extends State<ForumScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showDeleteCategoryDialog(BuildContext context, ForumCategory category) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Category'),
+          content: Text('Are you sure you want to delete "${category.name}"?\n\nThis action cannot be undone and will permanently delete:\n• The category\n• All topics in this category (${category.topicsCount})\n• All posts in those topics (${category.postsCount})\n\nThis is a destructive operation!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await context.read<ForumProvider>().deleteCategory(category.id);
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Category deleted successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to delete category: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete Forever'),
+            ),
+          ],
         );
       },
     );

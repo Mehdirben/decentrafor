@@ -237,6 +237,25 @@ class ForumProvider with ChangeNotifier {
     }
   }
 
+  // Delete category (admin only)
+  Future<void> deleteCategory(String categoryId) async {
+    print('ForumProvider: Starting to delete category: $categoryId');
+    _setLoading(true);
+    try {
+      await _forumService.deleteCategory(categoryId);
+      print('ForumProvider: Category deleted successfully, reloading categories');
+      // Reload categories to reflect the deletion
+      await loadCategories();
+      _error = null;
+      print('ForumProvider: Categories reloaded');
+    } catch (e) {
+      print('ForumProvider: Error deleting category: $e');
+      _error = 'Failed to delete category: $e';
+      _setLoading(false);
+      rethrow;
+    }
+  }
+
   // Like/unlike post
   Future<void> togglePostLike(String postId, String userId) async {
     try {

@@ -460,6 +460,24 @@ class ForumService {
     }
   }
 
+  Future<void> deleteCategory(String categoryId) async {
+    try {
+      print('ForumService: Starting to delete category: $categoryId');
+      
+      // Use direct database cascade deletion instead of manual deletion
+      // This relies on proper foreign key constraints in the database
+      await _supabase
+          .from('forum_categories')
+          .delete()
+          .eq('id', categoryId);
+          
+      print('ForumService: Category deletion completed');
+    } catch (e) {
+      print('Error deleting category: $e');
+      throw Exception('Failed to delete category: $e');
+    }
+  }
+
   // Search
   Future<List<ForumTopic>> searchTopics(String query) async {
     try {
