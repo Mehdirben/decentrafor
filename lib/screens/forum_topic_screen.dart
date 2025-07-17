@@ -505,7 +505,8 @@ class _ForumTopicScreenState extends State<ForumTopicScreen> {
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                centerTitle: true,
+                titlePadding: const EdgeInsets.only(bottom: 16),
                 collapseMode: CollapseMode.pin,
                 title: Text(
                   widget.topic.title,
