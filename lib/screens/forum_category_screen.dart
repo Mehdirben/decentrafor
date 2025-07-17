@@ -4,6 +4,7 @@ import '../providers/forum_provider.dart';
 import '../providers/username_provider.dart';
 import '../models/forum_category.dart';
 import '../models/forum_topic.dart';
+import '../services/admin_features_service.dart';
 import 'forum_topic_screen.dart';
 import 'create_topic_screen.dart';
 
@@ -20,6 +21,13 @@ class ForumCategoryScreen extends StatefulWidget {
 }
 
 class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
+  
+  Future<bool> _isAdminWithFeatures() async {
+    final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
+    final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
+    return usernameProvider.isAdmin && adminFeaturesEnabled;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -409,9 +417,10 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
                     ],
                   ),
                   // Admin delete button
-                  Consumer<UsernameProvider>(
-                    builder: (context, usernameProvider, child) {
-                      if (usernameProvider.isAdmin) {
+                  FutureBuilder<bool>(
+                    future: _isAdminWithFeatures(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data == true) {
                         return Padding(
                           padding: const EdgeInsets.only(left: 8.0),
                           child: IconButton(

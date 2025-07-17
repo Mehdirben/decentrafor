@@ -4,6 +4,7 @@ import '../providers/forum_provider.dart';
 import '../providers/username_provider.dart';
 import '../models/forum_topic.dart';
 import '../models/forum_post.dart';
+import '../services/admin_features_service.dart';
 
 class ForumTopicScreen extends StatefulWidget {
   final ForumTopic topic;
@@ -21,6 +22,12 @@ class _ForumTopicScreenState extends State<ForumTopicScreen> {
   final _replyController = TextEditingController();
   bool _isReplying = false;
   String? _replyingToPostId;
+
+  Future<bool> _isAdminWithFeatures() async {
+    final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
+    final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
+    return usernameProvider.isAdmin && adminFeaturesEnabled;
+  }
 
   @override
   void initState() {
@@ -640,9 +647,10 @@ class _ForumTopicScreenState extends State<ForumTopicScreen> {
                 ),
                 const Spacer(),
                 // Admin delete button
-                Consumer<UsernameProvider>(
-                  builder: (context, usernameProvider, child) {
-                    if (usernameProvider.isAdmin) {
+                FutureBuilder<bool>(
+                  future: _isAdminWithFeatures(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data == true) {
                       return IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                         onPressed: () => _showDeletePostDialog(context, post),
