@@ -39,13 +39,13 @@ class ForumService {
   // Topics
   Future<List<ForumTopic>> getTopics(String categoryId, {int? limit}) async {
     try {
+      print('ForumService: Fetching topics for category $categoryId');
+      
       var query = _supabase
           .from('forum_topics')
           .select('''
             *,
-            author_name:forum_users!author_id(display_name),
-            posts_count:forum_posts(count),
-            last_post:forum_posts(id, author_name:forum_users!author_id(display_name), created_at)
+            author_name:forum_users!author_id(display_name)
           ''')
           .eq('category_id', categoryId)
           .order('is_pinned', ascending: false)
@@ -56,23 +56,29 @@ class ForumService {
       }
 
       final response = await query;
+      print('ForumService: Got ${(response as List).length} topics from database');
 
-      return (response as List).map((json) {
-        // Handle last post data
-        if (json['last_post'] is List && (json['last_post'] as List).isNotEmpty) {
-          final lastPost = (json['last_post'] as List).last;
-          json['last_post_id'] = lastPost['id'];
-          json['last_post_author'] = lastPost['author_name']?['display_name'];
-          json['last_post_at'] = lastPost['created_at'];
-        }
+      final topics = (response as List).map((json) {
+        print('ForumService: Processing topic: ${json['title']}');
         
         // Handle author name
         if (json['author_name'] is Map) {
           json['author_name'] = json['author_name']['display_name'];
         }
 
+        // For now, set default values for posts_count and other fields
+        // We can add these counts separately if needed
+        json['posts_count'] = json['posts_count'] ?? 0;
+        json['views_count'] = json['views_count'] ?? 0;
+        json['last_post_id'] = json['last_post_id'];
+        json['last_post_author'] = json['last_post_author'];
+        json['last_post_at'] = json['last_post_at'];
+
         return ForumTopic.fromJson(json);
       }).toList();
+      
+      print('ForumService: Successfully parsed ${topics.length} topics');
+      return topics;
     } catch (e) {
       print('Error fetching topics: $e');
       return [];
@@ -116,6 +122,8 @@ class ForumService {
     required String authorId,
   }) async {
     try {
+      print('ForumService: Creating topic "$title" for author $authorId in category $categoryId');
+      
       final response = await _supabase
           .from('forum_topics')
           .insert({
@@ -130,12 +138,16 @@ class ForumService {
           ''')
           .single();
 
+      print('ForumService: Topic creation response: $response');
+
       // Handle author name
       if (response['author_name'] is Map) {
         response['author_name'] = response['author_name']['display_name'];
       }
 
-      return ForumTopic.fromJson(response);
+      final topic = ForumTopic.fromJson(response);
+      print('ForumService: Topic created successfully with ID: ${topic.id}');
+      return topic;
     } catch (e) {
       print('Error creating topic: $e');
       return null;

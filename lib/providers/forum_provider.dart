@@ -43,13 +43,18 @@ class ForumProvider with ChangeNotifier {
 
   // Load topics for a category
   Future<void> loadTopics(String categoryId) async {
+    print('ForumProvider: Starting to load topics for category $categoryId');
     _setLoading(true);
     try {
+      print('ForumProvider: Calling forum service to get topics...');
       _topics = await _forumService.getTopics(categoryId);
+      print('ForumProvider: Got ${_topics.length} topics from service');
       _error = null;
     } catch (e) {
+      print('ForumProvider: Error loading topics: $e');
       _error = 'Failed to load topics: $e';
     } finally {
+      print('ForumProvider: Setting loading to false for topics...');
       _setLoading(false);
     }
   }
@@ -90,6 +95,7 @@ class ForumProvider with ChangeNotifier {
     required String categoryId,
     required String authorId,
   }) async {
+    print('ForumProvider: Creating topic "$title" in category $categoryId');
     _setLoading(true);
     try {
       final topic = await _forumService.createTopic(
@@ -100,13 +106,18 @@ class ForumProvider with ChangeNotifier {
       );
       
       if (topic != null) {
+        print('ForumProvider: Topic created successfully, adding to local list');
         _topics.insert(0, topic);
+        print('ForumProvider: Now have ${_topics.length} topics in list');
         notifyListeners();
+      } else {
+        print('ForumProvider: Topic creation returned null');
       }
       
       _error = null;
       return topic;
     } catch (e) {
+      print('ForumProvider: Error creating topic: $e');
       _error = 'Failed to create topic: $e';
       return null;
     } finally {
