@@ -103,11 +103,14 @@ class _CreateTopicScreenState extends State<CreateTopicScreen> {
               pinned: true,
               elevation: 0,
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1F2937),
-              iconTheme: const IconThemeData(color: Colors.white),
+              foregroundColor: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+              iconTheme: IconThemeData(
+                color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+              ),
               flexibleSpace: FlexibleSpaceBar(
                 centerTitle: true,
                 titlePadding: const EdgeInsets.only(bottom: 16),
+                collapseMode: CollapseMode.pin,
                 title: Text(
                   'Create New Topic',
                   style: TextStyle(
