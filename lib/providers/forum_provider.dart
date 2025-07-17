@@ -61,29 +61,42 @@ class ForumProvider with ChangeNotifier {
 
   // Load topic details
   Future<void> loadTopic(String topicId) async {
+    print('ForumProvider: Starting to load topic details for $topicId');
     _setLoading(true);
     try {
+      print('ForumProvider: Calling forum service to get topic details...');
       _currentTopic = await _forumService.getTopic(topicId);
       if (_currentTopic != null) {
+        print('ForumProvider: Topic loaded successfully: ${_currentTopic!.title}');
+        print('ForumProvider: Loading posts for this topic...');
         await loadPosts(topicId);
+      } else {
+        print('ForumProvider: Topic loading returned null');
       }
       _error = null;
     } catch (e) {
+      print('ForumProvider: Error loading topic: $e');
       _error = 'Failed to load topic: $e';
     } finally {
+      print('ForumProvider: Setting loading to false for topic details...');
       _setLoading(false);
     }
   }
 
   // Load posts for a topic
   Future<void> loadPosts(String topicId) async {
+    print('ForumProvider: Starting to load posts for topic $topicId');
     _setLoading(true);
     try {
+      print('ForumProvider: Calling forum service to get posts...');
       _posts = await _forumService.getPosts(topicId);
+      print('ForumProvider: Got ${_posts.length} posts from service');
       _error = null;
     } catch (e) {
+      print('ForumProvider: Error loading posts: $e');
       _error = 'Failed to load posts: $e';
     } finally {
+      print('ForumProvider: Setting loading to false for posts...');
       _setLoading(false);
     }
   }
@@ -132,6 +145,7 @@ class ForumProvider with ChangeNotifier {
     required String authorId,
     String? parentPostId,
   }) async {
+    print('ForumProvider: Creating post in topic $topicId by author $authorId');
     try {
       final post = await _forumService.createPost(
         content: content,
@@ -141,7 +155,9 @@ class ForumProvider with ChangeNotifier {
       );
       
       if (post != null) {
+        print('ForumProvider: Post created successfully, adding to local list');
         _posts.add(post);
+        print('ForumProvider: Now have ${_posts.length} posts in list');
         
         // Update topic post count
         if (_currentTopic != null && _currentTopic!.id == topicId) {
@@ -165,11 +181,14 @@ class ForumProvider with ChangeNotifier {
         }
         
         notifyListeners();
+      } else {
+        print('ForumProvider: Post creation returned null');
       }
       
       _error = null;
       return post;
     } catch (e) {
+      print('ForumProvider: Error creating post: $e');
       _error = 'Failed to create post: $e';
       return null;
     }
