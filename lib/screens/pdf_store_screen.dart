@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
 import '../providers/pdf_provider.dart';
 import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
@@ -8,6 +7,7 @@ import '../screens/add_pdf_screen.dart';
 import '../screens/downloads_screen.dart';
 import '../screens/authenticated_storage_screen.dart';
 import '../services/download_service.dart';
+import '../services/auth_service.dart';
 
 class PdfStoreScreen extends StatefulWidget {
   const PdfStoreScreen({super.key});
@@ -25,6 +25,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
   late Animation<double> _fabAnimation;
   bool _isSearchFocused = false;
   bool _isFabExpanded = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -49,7 +50,100 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PdfProvider>(context, listen: false).loadPdfs();
+      _checkAdminStatus();
     });
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await AuthService.isAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(PdfDocument pdf) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete PDF'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${pdf.title}"?'),
+            const SizedBox(height: 8),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _deletePdf(pdf);
+    }
+  }
+
+  Future<void> _deletePdf(PdfDocument pdf) async {
+    try {
+      await Provider.of<PdfProvider>(context, listen: false).deletePdf(pdf.id);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF "${pdf.title}" deleted successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete PDF: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -114,18 +208,58 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
-                                  'PDF Library',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'PDF Library',
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    if (_isAdmin)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.admin_panel_settings_rounded,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Admin',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Discover and organize your documents',
+                                  _isAdmin 
+                                      ? 'Manage and organize your documents'
+                                      : 'Discover and organize your documents',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.white.withValues(alpha: 0.9),
@@ -194,7 +328,11 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                               ),
                               curve: Curves.easeOutBack,
                               margin: const EdgeInsets.only(bottom: 16),
-                              child: ModernPdfListCard(pdf: pdf),
+                              child: ModernPdfListCard(
+                                pdf: pdf,
+                                isAdmin: _isAdmin,
+                                onDelete: () => _showDeleteConfirmation(pdf),
+                              ),
                             );
                           }, childCount: pdfProvider.pdfs.length),
                         ),
@@ -739,8 +877,15 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
 // Modern PDF List Card optimized for list layout
 class ModernPdfListCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const ModernPdfListCard({super.key, required this.pdf});
+  const ModernPdfListCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<ModernPdfListCard> createState() => _ModernPdfListCardState();
@@ -1066,10 +1211,46 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
                       ),
                     ),
 
-                    // Right side - Download button
+                    // Right side - Action buttons
                     Container(
-                      width: 60,
-                      child: Center(child: _buildListDownloadButton()),
+                      width: widget.isAdmin ? 120 : 60,
+                      child: widget.isAdmin
+                          ? Row(
+                              children: [
+                                // Delete button for admin
+                                Container(
+                                  width: 50,
+                                  child: Center(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.red.withValues(alpha: 0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_rounded,
+                                          color: Colors.red,
+                                          size: 18,
+                                        ),
+                                        onPressed: widget.onDelete,
+                                        tooltip: 'Delete PDF',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Download button
+                                Container(
+                                  width: 50,
+                                  child: Center(child: _buildListDownloadButton()),
+                                ),
+                              ],
+                            )
+                          : Center(child: _buildListDownloadButton()),
                     ),
                   ],
                 ),
@@ -1229,8 +1410,15 @@ class GeometricPatternPainter extends CustomPainter {
 
 class ModernPdfCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const ModernPdfCard({super.key, required this.pdf});
+  const ModernPdfCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<ModernPdfCard> createState() => _ModernPdfCardState();
@@ -1435,7 +1623,7 @@ class _ModernPdfCardState extends State<ModernPdfCard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header with icon and download button
+                          // Header with icon and action buttons
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1449,7 +1637,38 @@ class _ModernPdfCardState extends State<ModernPdfCard>
                                 ),
                                 child: _buildThumbnail(),
                               ),
-                              _buildModernDownloadButton(),
+                              // Action buttons section
+                              widget.isAdmin
+                                  ? Row(
+                                      children: [
+                                        // Delete button for admin
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(alpha: 0.1),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_rounded,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                            onPressed: widget.onDelete,
+                                            tooltip: 'Delete PDF',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildModernDownloadButton(),
+                                      ],
+                                    )
+                                  : _buildModernDownloadButton(),
                             ],
                           ),
 
@@ -1717,8 +1936,15 @@ class _ModernPdfCardState extends State<ModernPdfCard>
 // Legacy PdfCard class for backward compatibility
 class PdfCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const PdfCard({super.key, required this.pdf});
+  const PdfCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<PdfCard> createState() => _PdfCardState();
@@ -1836,12 +2062,24 @@ class _PdfCardState extends State<PdfCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // PDF icon and download button
+              // PDF icon and action buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Icon(Icons.picture_as_pdf, size: 48, color: Colors.red),
-                  _buildDownloadButton(),
+                  Row(
+                    children: [
+                      if (widget.isAdmin) ...[
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: widget.onDelete,
+                          tooltip: 'Delete PDF',
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _buildDownloadButton(),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
