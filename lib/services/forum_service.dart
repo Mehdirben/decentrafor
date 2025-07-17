@@ -414,6 +414,52 @@ class ForumService {
     }
   }
 
+  // Admin methods
+  Future<void> createCategory(String name, String description, String icon) async {
+    try {
+      await _supabase.from('forum_categories').insert({
+        'name': name,
+        'description': description,
+        'icon': icon,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Error creating category: $e');
+      throw Exception('Failed to create category: $e');
+    }
+  }
+
+  Future<void> deleteTopic(String topicId) async {
+    try {
+      // First delete all posts in the topic
+      await _supabase
+          .from('forum_posts')
+          .delete()
+          .eq('topic_id', topicId);
+      
+      // Then delete the topic
+      await _supabase
+          .from('forum_topics')
+          .delete()
+          .eq('id', topicId);
+    } catch (e) {
+      print('Error deleting topic: $e');
+      throw Exception('Failed to delete topic: $e');
+    }
+  }
+
+  Future<void> deletePostAdmin(String postId) async {
+    try {
+      await _supabase
+          .from('forum_posts')
+          .delete()
+          .eq('id', postId);
+    } catch (e) {
+      print('Error deleting post: $e');
+      throw Exception('Failed to delete post: $e');
+    }
+  }
+
   // Search
   Future<List<ForumTopic>> searchTopics(String query) async {
     try {

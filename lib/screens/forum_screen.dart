@@ -150,6 +150,19 @@ class _ForumScreenState extends State<ForumScreen> {
           );
         },
       ),
+      floatingActionButton: Consumer<UsernameProvider>(
+        builder: (context, usernameProvider, child) {
+          if (usernameProvider.isAdmin) {
+            return FloatingActionButton.extended(
+              onPressed: () => _showAddCategoryDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Category'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
@@ -331,5 +344,110 @@ class _ForumScreenState extends State<ForumScreen> {
       default:
         return Icons.topic;
     }
+  }
+
+  void _showAddCategoryDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String selectedIcon = 'general';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Add New Category'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Category Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedIcon,
+                      decoration: const InputDecoration(
+                        labelText: 'Icon',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'general', child: Text('General')),
+                        DropdownMenuItem(value: 'science', child: Text('Science')),
+                        DropdownMenuItem(value: 'math', child: Text('Math')),
+                        DropdownMenuItem(value: 'history', child: Text('History')),
+                        DropdownMenuItem(value: 'technology', child: Text('Technology')),
+                        DropdownMenuItem(value: 'art', child: Text('Art')),
+                        DropdownMenuItem(value: 'music', child: Text('Music')),
+                        DropdownMenuItem(value: 'sports', child: Text('Sports')),
+                        DropdownMenuItem(value: 'language', child: Text('Language')),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedIcon = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isNotEmpty &&
+                        descriptionController.text.trim().isNotEmpty) {
+                      try {
+                        await context.read<ForumProvider>().createCategory(
+                          nameController.text.trim(),
+                          descriptionController.text.trim(),
+                          selectedIcon,
+                        );
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Category created successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to create category: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

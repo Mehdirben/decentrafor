@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/username_service.dart';
+import '../services/auth_service.dart';
 
 class UsernameProvider with ChangeNotifier {
   final UsernameService _usernameService = UsernameService();
@@ -7,12 +8,14 @@ class UsernameProvider with ChangeNotifier {
   String? _currentUsername;
   String? _currentUserId;
   bool _isLoading = false;
+  bool _isAdmin = false;
   String? _error;
 
   // Getters
   String? get currentUsername => _currentUsername;
   String? get currentUserId => _currentUserId;
   bool get isLoading => _isLoading;
+  bool get isAdmin => _isAdmin;
   String? get error => _error;
   bool get hasUsername => _currentUsername != null;
 
@@ -26,6 +29,9 @@ class UsernameProvider with ChangeNotifier {
         if (userId != null) {
           _currentUsername = storedUsername;
           _currentUserId = userId;
+          
+          // Check admin status
+          _isAdmin = await AuthService.isAdmin();
         } else {
           // Username exists locally but not in database, clear it
           await _usernameService.clearUsername();
@@ -67,6 +73,10 @@ class UsernameProvider with ChangeNotifier {
       if (userId != null) {
         _currentUsername = username;
         _currentUserId = userId;
+        
+        // Check admin status
+        _isAdmin = await AuthService.isAdmin();
+        
         _error = null;
         _setLoading(false);
         return true;
@@ -88,6 +98,7 @@ class UsernameProvider with ChangeNotifier {
       await _usernameService.clearUsername();
       _currentUsername = null;
       _currentUserId = null;
+      _isAdmin = false;
       _error = null;
       notifyListeners();
     } catch (e) {

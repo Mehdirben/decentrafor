@@ -194,6 +194,49 @@ class ForumProvider with ChangeNotifier {
     }
   }
 
+  // Create new category (admin only)
+  Future<void> createCategory(String name, String description, String icon) async {
+    _setLoading(true);
+    try {
+      await _forumService.createCategory(name, description, icon);
+      // Reload categories to show the new one
+      await loadCategories();
+      _error = null;
+    } catch (e) {
+      _error = 'Failed to create category: $e';
+      _setLoading(false);
+      rethrow;
+    }
+  }
+
+  // Delete topic (admin only)
+  Future<void> deleteTopic(String topicId) async {
+    try {
+      await _forumService.deleteTopic(topicId);
+      // Remove from local list
+      _topics.removeWhere((topic) => topic.id == topicId);
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete topic: $e';
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // Delete post (admin only)
+  Future<void> deletePostAdmin(String postId) async {
+    try {
+      await _forumService.deletePostAdmin(postId);
+      // Remove from local list
+      _posts.removeWhere((post) => post.id == postId);
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete post: $e';
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   // Like/unlike post
   Future<void> togglePostLike(String postId, String userId) async {
     try {
