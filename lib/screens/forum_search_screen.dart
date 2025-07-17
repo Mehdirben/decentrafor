@@ -70,8 +70,10 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
               elevation: 0,
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1F2937),
+              iconTheme: const IconThemeData(color: Colors.white),
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                centerTitle: true,
+                titlePadding: const EdgeInsets.only(bottom: 16),
                 title: Text(
                   'Search Topics',
                   style: TextStyle(

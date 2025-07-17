@@ -104,8 +104,10 @@ class _CreateTopicScreenState extends State<CreateTopicScreen> {
               elevation: 0,
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1F2937),
+              iconTheme: const IconThemeData(color: Colors.white),
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                centerTitle: true,
+                titlePadding: const EdgeInsets.only(bottom: 16),
                 title: Text(
                   'Create New Topic',
                   style: TextStyle(
@@ -136,57 +138,6 @@ class _CreateTopicScreenState extends State<CreateTopicScreen> {
                   ),
                 ),
               ),
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      gradient: _isCreating ? null : const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF10B981), Color(0xFF059669)],
-                      ),
-                      color: _isCreating ? Colors.grey : null,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: _isCreating ? null : [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _isCreating ? null : _createTopic,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isCreating
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Post',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ];
         },
