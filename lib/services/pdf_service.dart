@@ -138,32 +138,83 @@ class PdfService {
   // Delete PDF
   static Future<void> deletePdf(String id) async {
     try {
-      // First, get the PDF info to extract the file path
+      // Check current user and admin status
+      final currentUser = _client.auth.currentUser;
+      print('Debug: Current user: ${currentUser?.email} (ID: ${currentUser?.id})');
+      
+      // First, get the PDF info to extract the file paths
       final response = await _client
           .from('pdfs')
-          .select('file_url')
+          .select('file_url, thumbnail_url')
           .eq('id', id)
           .single();
       
       final String fileUrl = response['file_url'];
+      final String? thumbnailUrl = response['thumbnail_url'];
       
-      // Extract the file path from the URL
-      // URL format: https://[project-id].supabase.co/storage/v1/object/public/pdfs/filename
-      if (fileUrl.contains('supabase.co/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/')) {
-        final filePath = fileUrl.split('${SupabaseConfig.pdfBucketName}/').last;
-        
-        // Delete the file from storage
-        await _client.storage
-            .from(SupabaseConfig.pdfBucketName)
-            .remove(['pdfs/$filePath']);
+      print('Debug: Starting deletion for PDF ID: $id');
+      print('Debug: PDF fileUrl: $fileUrl');
+      print('Debug: Thumbnail URL: $thumbnailUrl');
+      
+      // Delete the main PDF file from storage
+      if (fileUrl.isNotEmpty) {
+        try {
+          // Extract the file path from the URL
+          Uri uri = Uri.parse(fileUrl);
+          String path = uri.path;
+          print('Debug: Full URL path: "$path"');
+          
+          // Path should be like: /storage/v1/object/public/pdfs/pdfs/filename.pdf
+          if (path.contains('/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/')) {
+            final filePath = path.split('/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/').last;
+            print('Debug: Extracted PDF file path: "$filePath"');
+            
+            await _client.storage
+                .from(SupabaseConfig.pdfBucketName)
+                .remove([filePath]);
+            print('Debug: Successfully deleted PDF file from storage');
+          } else {
+            print('Debug: PDF URL path does not match expected format: $path');
+          }
+        } catch (e) {
+          print('Debug: Failed to delete PDF file from storage: $e');
+          // Continue with deletion process - don't fail completely
+        }
       }
       
-      // Delete the record from the database
+      // Delete the thumbnail file from storage
+      if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
+        try {
+          Uri uri = Uri.parse(thumbnailUrl);
+          String path = uri.path;
+          print('Debug: Full thumbnail path: "$path"');
+          
+          if (path.contains('/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/')) {
+            final thumbnailPath = path.split('/storage/v1/object/public/${SupabaseConfig.pdfBucketName}/').last;
+            print('Debug: Extracted thumbnail file path: "$thumbnailPath"');
+            
+            await _client.storage
+                .from(SupabaseConfig.pdfBucketName)
+                .remove([thumbnailPath]);
+            print('Debug: Successfully deleted thumbnail file from storage');
+          } else {
+            print('Debug: Thumbnail URL path does not match expected format: $path');
+          }
+        } catch (e) {
+          print('Debug: Failed to delete thumbnail file from storage: $e');
+          // Continue with deletion process - don't fail completely
+        }
+      }
+      
+      // Delete the record from the database (this is the most important part)
       await _client
           .from('pdfs')
           .delete()
           .eq('id', id);
+      print('Debug: Successfully deleted PDF record from database');
+      
     } catch (e) {
+      print('Debug: Critical error in deletePdf: $e');
       throw Exception('Failed to delete PDF: $e');
     }
   }

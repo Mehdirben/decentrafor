@@ -99,6 +99,7 @@ class PdfProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      rethrow; // Re-throw the exception so the UI can handle it
     }
   }
 
