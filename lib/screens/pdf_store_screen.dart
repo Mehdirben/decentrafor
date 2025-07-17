@@ -307,13 +307,20 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                     ),
                   ),
                 ),
+                // Add PDF Button Section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+                    child: _buildAddPdfButton(),
+                  ),
+                ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     20,
-                    30,
+                    10,
                     20,
                     100,
-                  ), // Added top padding to push PDFs down
+                  ), // Reduced top padding since we added the button
                   sliver: pdfProvider.pdfs.isEmpty
                       ? SliverToBoxAdapter(child: _buildEmptyState())
                       : SliverList(
@@ -401,50 +408,6 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                         foregroundColor: Colors.white,
                         elevation: 6,
                         child: const Icon(Icons.download_rounded),
-                      ),
-                    ),
-                    // Add PDF button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "add_pdf",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      const AddPdfScreen(),
-                              transitionsBuilder:
-                                  (
-                                    context,
-                                    animation,
-                                    secondaryAnimation,
-                                    child,
-                                  ) {
-                                    return SlideTransition(
-                                      position: animation.drive(
-                                        Tween(
-                                          begin: const Offset(0.0, 1.0),
-                                          end: Offset.zero,
-                                        ).chain(
-                                          CurveTween(curve: Curves.easeOut),
-                                        ),
-                                      ),
-                                      child: child,
-                                    );
-                                  },
-                              transitionDuration: const Duration(
-                                milliseconds: 300,
-                              ),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF667EEA),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.add_rounded),
                       ),
                     ),
                   ],
@@ -772,6 +735,114 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
     );
   }
 
+  Widget _buildAddPdfButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const AddPdfScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 300),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Add New PDF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Upload and share your documents',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<int> _getDownloadedCount(List<PdfDocument> pdfs) async {
     int count = 0;
     for (final pdf in pdfs) {
@@ -846,7 +917,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            'Add your first PDF to get started',
+            'Use the "Add New PDF" button above to get started',
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
