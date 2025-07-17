@@ -17,22 +17,98 @@ class ForumService {
 
       print('Categories response: $response');
 
-      final categories = (response as List)
-          .map((json) {
-            print('Processing category: $json');
-            return ForumCategory.fromJson({
-              ...json,
-              'topics_count': 0,
-              'posts_count': 0,
-            });
-          })
-          .toList();
+      final categories = <ForumCategory>[];
+      
+      for (final json in response as List) {
+        print('Processing category: $json');
+        
+        // Get counts for this category
+        final categoryId = json['id'];
+        final topicsCount = await _getTopicsCountForCategory(categoryId);
+        final postsCount = await _getPostsCountForCategory(categoryId);
+        
+        categories.add(ForumCategory.fromJson({
+          ...json,
+          'topics_count': topicsCount,
+          'posts_count': postsCount,
+        }));
+      }
 
       print('Found ${categories.length} categories');
       return categories;
     } catch (e) {
       print('Error fetching categories: $e');
       return [];
+    }
+  }
+
+  // Helper method to count topics in a category
+  Future<int> _getTopicsCountForCategory(String categoryId) async {
+    try {
+      final response = await _supabase
+          .from('forum_topics')
+          .select('id')
+          .eq('category_id', categoryId);
+      return (response as List).length;
+    } catch (e) {
+      print('Error counting topics for category $categoryId: $e');
+      return 0;
+    }
+  }
+
+  // Helper method to count posts in a category
+  Future<int> _getPostsCountForCategory(String categoryId) async {
+    try {
+      // First get all topic IDs for this category
+      final topicsResponse = await _supabase
+          .from('forum_topics')
+          .select('id')
+          .eq('category_id', categoryId);
+      
+      if ((topicsResponse as List).isEmpty) {
+        return 0;
+      }
+      
+      final topicIds = (topicsResponse as List).map((topic) => topic['id']).toList();
+      
+      // Then count posts for these topics
+      final postsResponse = await _supabase
+          .from('forum_posts')
+          .select('id')
+          .inFilter('topic_id', topicIds);
+      
+      return (postsResponse as List).length;
+    } catch (e) {
+      print('Error counting posts for category $categoryId: $e');
+      return 0;
+    }
+  }
+
+  // Helper method to count posts in a topic
+  Future<int> _getPostsCountForTopic(String topicId) async {
+    try {
+      final response = await _supabase
+          .from('forum_posts')
+          .select('id')
+          .eq('topic_id', topicId);
+      return (response as List).length;
+    } catch (e) {
+      print('Error counting posts for topic $topicId: $e');
+      return 0;
+    }
+  }
+
+  // Helper method to count likes for a post
+  Future<int> _getLikesCountForPost(String postId) async {
+    try {
+      final response = await _supabase
+          .from('forum_post_likes')
+          .select('id')
+          .eq('post_id', postId);
+      return (response as List).length;
+    } catch (e) {
+      print('Error counting likes for post $postId: $e');
+      return 0;
     }
   }
 
@@ -58,7 +134,9 @@ class ForumService {
       final response = await query;
       print('ForumService: Got ${(response as List).length} topics from database');
 
-      final topics = (response as List).map((json) {
+      final topics = <ForumTopic>[];
+      
+      for (final json in response as List) {
         print('ForumService: Processing topic: ${json['title']}');
         
         // Handle author name
@@ -66,16 +144,19 @@ class ForumService {
           json['author_name'] = json['author_name']['display_name'];
         }
 
-        // For now, set default values for posts_count and other fields
-        // We can add these counts separately if needed
-        json['posts_count'] = json['posts_count'] ?? 0;
+        // Get actual post count for this topic
+        final topicId = json['id'];
+        final postsCount = await _getPostsCountForTopic(topicId);
+
+        // Set values with actual counts
+        json['posts_count'] = postsCount;
         json['views_count'] = json['views_count'] ?? 0;
         json['last_post_id'] = json['last_post_id'];
         json['last_post_author'] = json['last_post_author'];
         json['last_post_at'] = json['last_post_at'];
 
-        return ForumTopic.fromJson(json);
-      }).toList();
+        topics.add(ForumTopic.fromJson(json));
+      }
       
       print('ForumService: Successfully parsed ${topics.length} topics');
       return topics;
@@ -111,8 +192,11 @@ class ForumService {
         response['author_name'] = response['author_name']['display_name'];
       }
 
-      // Set default values
-      response['posts_count'] = response['posts_count'] ?? 0;
+      // Get actual posts count for this topic
+      final postsCount = await _getPostsCountForTopic(topicId);
+
+      // Set actual values
+      response['posts_count'] = postsCount;
       response['views_count'] = (response['views_count'] ?? 0) + 1; // +1 for the increment
 
       final topic = ForumTopic.fromJson(response);
@@ -188,7 +272,9 @@ class ForumService {
       final response = await query;
       print('ForumService: Got ${(response as List).length} posts from database');
 
-      final posts = (response as List).map((json) {
+      final posts = <ForumPost>[];
+      
+      for (final json in response as List) {
         final content = json['content']?.toString() ?? '';
         final preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
         print('ForumService: Processing post: $preview');
@@ -198,11 +284,15 @@ class ForumService {
           json['author_name'] = json['author_name']['display_name'];
         }
 
-        // Set default values for likes_count
-        json['likes_count'] = json['likes_count'] ?? 0;
+        // Get actual likes count for this post
+        final postId = json['id'];
+        final likesCount = await _getLikesCountForPost(postId);
 
-        return ForumPost.fromJson(json);
-      }).toList();
+        // Set actual likes count
+        json['likes_count'] = likesCount;
+
+        posts.add(ForumPost.fromJson(json));
+      }
       
       print('ForumService: Successfully parsed ${posts.length} posts');
       return posts;
@@ -327,25 +417,42 @@ class ForumService {
   // Search
   Future<List<ForumTopic>> searchTopics(String query) async {
     try {
+      print('ForumService: Searching topics with query: $query');
+      
       final response = await _supabase
           .from('forum_topics')
           .select('''
             *,
-            author_name:forum_users!author_id(display_name),
-            posts_count:forum_posts(count)
+            author_name:forum_users!author_id(display_name)
           ''')
           .or('title.ilike.%$query%,description.ilike.%$query%')
           .order('created_at', ascending: false)
           .limit(20);
 
-      return (response as List).map((json) {
+      print('ForumService: Got ${(response as List).length} search results');
+
+      final topics = <ForumTopic>[];
+      
+      for (final json in response as List) {
+        print('ForumService: Processing search result: ${json['title']}');
+        
         // Handle author name
         if (json['author_name'] is Map) {
           json['author_name'] = json['author_name']['display_name'];
         }
 
-        return ForumTopic.fromJson(json);
-      }).toList();
+        // Get actual posts count for this topic
+        final topicId = json['id'];
+        final postsCount = await _getPostsCountForTopic(topicId);
+
+        // Set actual values
+        json['posts_count'] = postsCount;
+        json['views_count'] = json['views_count'] ?? 0;
+
+        topics.add(ForumTopic.fromJson(json));
+      }
+      
+      return topics;
     } catch (e) {
       print('Error searching topics: $e');
       return [];
