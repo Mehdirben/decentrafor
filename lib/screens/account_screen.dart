@@ -259,13 +259,12 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: _isLoading
             ? _buildLoadingState()
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -286,23 +285,6 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                 ),
               ),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: const Color(0xFF1F2937),
-      title: const Text(
-        'Account',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1F2937),
-        ),
-      ),
-      automaticallyImplyLeading: false,
     );
   }
 
