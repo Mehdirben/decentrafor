@@ -42,9 +42,27 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     
-    _checkAuthStatus();
+    _loadUsername(); // Load username independently
+    _checkAuthStatus(); // Check admin authentication separately
     _loadAdminFeaturesState();
     _animationController.forward();
+  }
+
+  Future<void> _loadUsername() async {
+    try {
+      // Load username independently - always available locally
+      final username = await UsernameService.getUsername();
+      setState(() {
+        _currentUsername = username ?? 'User';
+        _usernameController.text = username ?? '';
+      });
+    } catch (e) {
+      // If loading fails, set default
+      setState(() {
+        _currentUsername = 'User';
+        _usernameController.text = '';
+      });
+    }
   }
 
   @override
@@ -62,14 +80,12 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     });
 
     try {
+      // Check admin authentication separately from username
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final username = await UsernameService.getUsername();
         setState(() {
           _isLoggedIn = true;
           _currentUser = user;
-          _currentUsername = username;
-          _usernameController.text = username ?? '';
         });
       }
     } catch (e) {
@@ -101,12 +117,6 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     } catch (e) {
       _showError('Failed to save admin features state: $e');
     }
-  }
-
-  // Static method to check admin features state from anywhere in the app
-  // This will be used by other screens to determine if admin features should be shown
-  static Future<bool> isAdminFeaturesEnabled() async {
-    return await AdminFeaturesService.isEnabled();
   }
 
   Future<void> _signIn() async {
@@ -174,7 +184,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       setState(() {
         _isLoggedIn = false;
         _currentUser = null;
-        _currentUsername = null;
+        // Don't clear _currentUsername - it stays independent
       });
       _showSuccess('Signed out successfully');
     } catch (e) {
@@ -194,10 +204,15 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     });
 
     try {
-      await UsernameService.setUsername(_usernameController.text.trim());
+      final newUsername = _usernameController.text.trim();
+      
+      // Save username locally (completely independent of admin login)
+      await UsernameService.setUsername(newUsername);
+      
       setState(() {
-        _currentUsername = _usernameController.text.trim();
+        _currentUsername = newUsername;
       });
+      
       _showSuccess('Username updated successfully!');
     } catch (e) {
       _showError('Failed to update username: $e');
