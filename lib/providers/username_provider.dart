@@ -19,24 +19,33 @@ class UsernameProvider with ChangeNotifier {
   String? get error => _error;
   bool get hasUsername => _currentUsername != null;
 
-  // Initialize - check for stored username (local only)
+  // Initialize - check for stored username and register if needed
   Future<void> initialize() async {
     _setLoading(true);
     try {
       final storedUsername = await _usernameService.getStoredUsername();
       if (storedUsername != null) {
         _currentUsername = storedUsername;
+        // Try to get existing userId from database
+        _currentUserId = await _usernameService.getUserId(storedUsername);
+        // If no userId exists, register the username to get one
+        if (_currentUserId == null) {
+          _currentUserId = await _usernameService.registerUsername(storedUsername);
+        }
         // Check admin status independently
         _isAdmin = await AuthService.isAdmin();
       } else {
         // Set default username if none exists
         _currentUsername = 'User';
+        // Register default username to get userId
+        _currentUserId = await _usernameService.registerUsername('User');
       }
       _error = null;
     } catch (e) {
       _error = 'Failed to initialize username: $e';
       // Set default on error
       _currentUsername = 'User';
+      _currentUserId = null;
     } finally {
       _setLoading(false);
     }

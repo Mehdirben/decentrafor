@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
-import '../services/username_service.dart';
 import '../services/admin_features_service.dart';
 import '../providers/username_provider.dart';
 
@@ -52,19 +51,12 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
 
   Future<void> _loadUsername() async {
     try {
-      // Load username from provider to ensure consistency with forum
+      // Get username from provider (this will handle initialization)
       final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
-      final username = await UsernameService.getUsername();
       setState(() {
-        _currentUsername = username ?? 'User';
-        _usernameController.text = username ?? '';
+        _currentUsername = usernameProvider.currentUsername ?? 'User';
+        _usernameController.text = usernameProvider.currentUsername ?? '';
       });
-      
-      // Update the provider if needed
-      if (username != null && username != usernameProvider.currentUsername) {
-        // Update provider to match local username
-        await UsernameService.setUsername(username);
-      }
     } catch (e) {
       // If loading fails, set default
       setState(() {
@@ -215,18 +207,19 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     try {
       final newUsername = _usernameController.text.trim();
       
-      // Save username locally (completely independent of admin login)
-      await UsernameService.setUsername(newUsername);
-      
-      // Update the provider so forum gets the new username
+      // Use the provider's setUsername method which handles database registration
       final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
-      await usernameProvider.setUsernameLocal(newUsername);
+      final success = await usernameProvider.setUsername(newUsername);
       
-      setState(() {
-        _currentUsername = newUsername;
-      });
-      
-      _showSuccess('Username updated successfully!');
+      if (success) {
+        setState(() {
+          _currentUsername = newUsername;
+        });
+        _showSuccess('Username updated successfully!');
+      } else {
+        // Show the error from the provider
+        _showError(usernameProvider.error ?? 'Failed to update username');
+      }
     } catch (e) {
       _showError('Failed to update username: $e');
     } finally {
