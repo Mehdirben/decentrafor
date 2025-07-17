@@ -192,6 +192,32 @@ class _ForumTopicScreenState extends State<ForumTopicScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          // Username display
+          Consumer<UsernameProvider>(
+            builder: (context, usernameProvider, child) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        usernameProvider.currentUsername ?? 'User',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<ForumProvider>(
         builder: (context, forumProvider, child) {

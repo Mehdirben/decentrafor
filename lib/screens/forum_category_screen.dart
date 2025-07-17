@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/forum_provider.dart';
+import '../providers/username_provider.dart';
 import '../models/forum_category.dart';
 import '../models/forum_topic.dart';
 import 'forum_topic_screen.dart';
@@ -33,6 +34,32 @@ class _ForumCategoryScreenState extends State<ForumCategoryScreen> {
       appBar: AppBar(
         title: Text(widget.category.name),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          // Username display
+          Consumer<UsernameProvider>(
+            builder: (context, usernameProvider, child) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        usernameProvider.currentUsername ?? 'User',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
