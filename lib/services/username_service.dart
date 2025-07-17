@@ -75,4 +75,15 @@ class UsernameService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_usernameKey);
   }
+
+  // Static methods for convenience
+  static Future<String?> getUsername() async {
+    final service = UsernameService();
+    return await service.getStoredUsername();
+  }
+
+  static Future<void> setUsername(String username) async {
+    final service = UsernameService();
+    await service.storeUsername(username);
+  }
 }

@@ -8,7 +8,7 @@ import 'providers/username_provider.dart';
 import 'screens/pdf_store_screen.dart';
 import 'screens/forum_screen.dart';
 import 'screens/downloads_screen.dart';
-import 'screens/authenticated_storage_screen.dart';
+import 'screens/account_screen.dart';
 import 'screens/username_setup_screen.dart';
 
 void main() async {
@@ -95,7 +95,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const PdfStoreScreen(),
     const ForumScreen(),
     const DownloadsScreen(),
-    const AuthenticatedStorageScreen(),
+    const AccountScreen(),
   ];
 
   @override
@@ -124,8 +124,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Downloads',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.storage_rounded),
-            label: 'Storage',
+            icon: Icon(Icons.account_circle_rounded),
+            label: 'Account',
           ),
         ],
       ),

@@ -22,6 +22,24 @@ class AuthService {
     }
   }
 
+  // Sign in with email and password (alias for consistency)
+  static Future<AuthResponse> signInWithEmail(String email, String password) async {
+    return signIn(email, password);
+  }
+
+  // Sign up with email and password
+  static Future<AuthResponse> signUpWithEmail(String email, String password) async {
+    try {
+      final response = await _client.auth.signUp(
+        email: email,
+        password: password,
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Failed to sign up: $e');
+    }
+  }
+
   // Sign out
   static Future<void> signOut() async {
     try {
