@@ -7,6 +7,8 @@ import 'providers/forum_provider.dart';
 import 'providers/username_provider.dart';
 import 'screens/pdf_store_screen.dart';
 import 'screens/forum_screen.dart';
+import 'screens/downloads_screen.dart';
+import 'screens/authenticated_storage_screen.dart';
 import 'screens/username_setup_screen.dart';
 
 void main() async {
@@ -92,6 +94,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const PdfStoreScreen(),
     const ForumScreen(),
+    const DownloadsScreen(),
+    const AuthenticatedStorageScreen(),
   ];
 
   @override
@@ -99,6 +103,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -113,6 +118,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.forum),
             label: 'Forum',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.download_rounded),
+            label: 'Downloads',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storage_rounded),
+            label: 'Storage',
           ),
         ],
       ),

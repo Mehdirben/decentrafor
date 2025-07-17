@@ -4,8 +4,6 @@ import '../providers/pdf_provider.dart';
 import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../screens/add_pdf_screen.dart';
-import '../screens/downloads_screen.dart';
-import '../screens/authenticated_storage_screen.dart';
 import '../services/download_service.dart';
 import '../services/auth_service.dart';
 
@@ -21,10 +19,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _searchAnimationController;
   late Animation<double> _searchAnimation;
-  late AnimationController _fabAnimationController;
-  late Animation<double> _fabAnimation;
   bool _isSearchFocused = false;
-  bool _isFabExpanded = false;
   bool _isAdmin = false;
 
   @override
@@ -36,15 +31,6 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
     );
     _searchAnimation = CurvedAnimation(
       parent: _searchAnimationController,
-      curve: Curves.easeOut,
-    );
-
-    _fabAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fabAnimation = CurvedAnimation(
-      parent: _fabAnimationController,
       curve: Curves.easeOut,
     );
 
@@ -149,7 +135,6 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
   @override
   void dispose() {
     _searchAnimationController.dispose();
-    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -320,7 +305,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                     10,
                     20,
                     100,
-                  ), // Reduced top padding since we added the button
+                  ), // Bottom padding for bottom nav bar
                   sliver: pdfProvider.pdfs.isEmpty
                       ? SliverToBoxAdapter(child: _buildEmptyState())
                       : SliverList(
@@ -349,102 +334,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           );
         },
       ),
-      floatingActionButton: _buildExpandableFAB(),
     );
-  }
-
-  Widget _buildExpandableFAB() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        // Expanded action buttons
-        AnimatedBuilder(
-          animation: _fabAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _fabAnimation.value,
-              child: Opacity(
-                opacity: _fabAnimation.value,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Storage button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "storage",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AuthenticatedStorageScreen(),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.storage_rounded),
-                      ),
-                    ),
-                    // Downloads button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "downloads",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DownloadsScreen(),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.download_rounded),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        // Main FAB
-        FloatingActionButton(
-          heroTag: "main",
-          onPressed: _toggleFAB,
-          backgroundColor: const Color(0xFF667EEA),
-          foregroundColor: Colors.white,
-          elevation: 8,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Icon(
-              _isFabExpanded ? Icons.close_rounded : Icons.menu_rounded,
-              key: ValueKey(_isFabExpanded),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _toggleFAB() {
-    setState(() {
-      _isFabExpanded = !_isFabExpanded;
-    });
-
-    if (_isFabExpanded) {
-      _fabAnimationController.forward();
-    } else {
-      _fabAnimationController.reverse();
-    }
   }
 
   Widget _buildLoadingState() {
