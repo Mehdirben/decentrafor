@@ -290,6 +290,7 @@ class _ForumScreenState extends State<ForumScreen> {
               // Admin delete button
               Consumer<UsernameProvider>(
                 builder: (context, usernameProvider, child) {
+                  print('Category Card: Admin status = ${usernameProvider.isAdmin}, Username = ${usernameProvider.currentUsername}');
                   if (usernameProvider.isAdmin) {
                     return IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red, size: 20),
@@ -483,7 +484,9 @@ class _ForumScreenState extends State<ForumScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
+                  print('Delete Category Dialog: Starting deletion of category ${category.id}');
                   await context.read<ForumProvider>().deleteCategory(category.id);
+                  print('Delete Category Dialog: Deletion completed successfully');
                   if (mounted) {
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -494,6 +497,7 @@ class _ForumScreenState extends State<ForumScreen> {
                     );
                   }
                 } catch (e) {
+                  print('Delete Category Dialog: Error occurred: $e');
                   if (mounted) {
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
