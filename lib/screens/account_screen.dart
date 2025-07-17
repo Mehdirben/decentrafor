@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../services/username_service.dart';
 import '../services/admin_features_service.dart';
+import '../providers/username_provider.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -50,12 +52,19 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
 
   Future<void> _loadUsername() async {
     try {
-      // Load username independently - always available locally
+      // Load username from provider to ensure consistency with forum
+      final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
       final username = await UsernameService.getUsername();
       setState(() {
         _currentUsername = username ?? 'User';
         _usernameController.text = username ?? '';
       });
+      
+      // Update the provider if needed
+      if (username != null && username != usernameProvider.currentUsername) {
+        // Update provider to match local username
+        await UsernameService.setUsername(username);
+      }
     } catch (e) {
       // If loading fails, set default
       setState(() {
@@ -208,6 +217,10 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       
       // Save username locally (completely independent of admin login)
       await UsernameService.setUsername(newUsername);
+      
+      // Update the provider so forum gets the new username
+      final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
+      await usernameProvider.setUsernameLocal(newUsername);
       
       setState(() {
         _currentUsername = newUsername;

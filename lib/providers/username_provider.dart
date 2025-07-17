@@ -19,27 +19,24 @@ class UsernameProvider with ChangeNotifier {
   String? get error => _error;
   bool get hasUsername => _currentUsername != null;
 
-  // Initialize - check for stored username
+  // Initialize - check for stored username (local only)
   Future<void> initialize() async {
     _setLoading(true);
     try {
       final storedUsername = await _usernameService.getStoredUsername();
       if (storedUsername != null) {
-        final userId = await _usernameService.getUserId(storedUsername);
-        if (userId != null) {
-          _currentUsername = storedUsername;
-          _currentUserId = userId;
-          
-          // Check admin status
-          _isAdmin = await AuthService.isAdmin();
-        } else {
-          // Username exists locally but not in database, clear it
-          await _usernameService.clearUsername();
-        }
+        _currentUsername = storedUsername;
+        // Check admin status independently
+        _isAdmin = await AuthService.isAdmin();
+      } else {
+        // Set default username if none exists
+        _currentUsername = 'User';
       }
       _error = null;
     } catch (e) {
       _error = 'Failed to initialize username: $e';
+      // Set default on error
+      _currentUsername = 'User';
     } finally {
       _setLoading(false);
     }
@@ -89,6 +86,20 @@ class UsernameProvider with ChangeNotifier {
       _error = 'Failed to set username: $e';
       _setLoading(false);
       return false;
+    }
+  }
+
+  // Set username locally only (no database registration)
+  Future<void> setUsernameLocal(String username) async {
+    try {
+      // Store username locally
+      await _usernameService.storeUsername(username);
+      _currentUsername = username;
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to set username locally: $e';
+      notifyListeners();
     }
   }
 
