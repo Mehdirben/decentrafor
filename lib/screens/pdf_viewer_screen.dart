@@ -16,35 +16,20 @@ class PdfViewerScreen extends StatefulWidget {
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late PdfViewerController _pdfViewerController;
-  final _scrollController = ScrollController();
   bool _isDownloading = false;
   bool _isDownloaded = false;
-  bool _isScrolled = false;
   double _downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
     _pdfViewerController = PdfViewerController();
-    _scrollController.addListener(_onScroll);
     _checkDownloadStatus();
-  }
-
-  void _onScroll() {
-    if (_scrollController.hasClients) {
-      final bool isScrolled = _scrollController.offset > 20;
-      if (isScrolled != _isScrolled) {
-        setState(() {
-          _isScrolled = isScrolled;
-        });
-      }
-    }
   }
 
   @override
   void dispose() {
     _pdfViewerController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -133,204 +118,143 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: NestedScrollView(
-        controller: _scrollController,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 120,
-              floating: false,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: _isScrolled ? Colors.white : Colors.transparent,
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
+      appBar: AppBar(
+        title: Text(widget.pdf.title),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1F2937),
+        elevation: 0,
+        actions: [
+          // Download button
+          if (!_isDownloaded && !_isDownloading)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF667EEA).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF667EEA).withOpacity(0.3),
                 ),
-                onPressed: () => Navigator.of(context).pop(),
               ),
-              actions: [
-                // Download button
-                if (!_isDownloaded && !_isDownloading)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: _isScrolled 
-                          ? const Color(0xFF667EEA).withOpacity(0.1)
-                          : Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isScrolled 
-                            ? const Color(0xFF667EEA).withOpacity(0.3)
-                            : Colors.white.withOpacity(0.3),
-                      ),
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.download,
-                        color: _isScrolled ? const Color(0xFF667EEA) : Colors.white,
-                      ),
-                      onPressed: _downloadPdf,
-                      tooltip: 'Download PDF',
-                    ),
-                  ),
-                if (_isDownloading)
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _isScrolled 
-                          ? const Color(0xFF667EEA).withOpacity(0.1)
-                          : Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        value: _downloadProgress,
-                        strokeWidth: 2,
-                        color: _isScrolled ? const Color(0xFF667EEA) : Colors.white,
-                      ),
-                    ),
-                  ),
-                if (_isDownloaded)
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.download_done,
-                      color: Colors.green,
-                    ),
-                  ),
-                
-                // Zoom controls
-                Container(
-                  margin: const EdgeInsets.only(right: 4),
-                  decoration: BoxDecoration(
-                    color: _isScrolled 
-                        ? const Color(0xFF764BA2).withOpacity(0.1)
-                        : Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.zoom_in,
-                      color: _isScrolled ? const Color(0xFF764BA2) : Colors.white,
-                    ),
-                    onPressed: () {
-                      _pdfViewerController.zoomLevel += 0.25;
-                    },
-                  ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.download,
+                  color: Color(0xFF667EEA),
                 ),
-                Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: _isScrolled 
-                        ? const Color(0xFF764BA2).withOpacity(0.1)
-                        : Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.zoom_out,
-                      color: _isScrolled ? const Color(0xFF764BA2) : Colors.white,
-                    ),
-                    onPressed: () {
-                      _pdfViewerController.zoomLevel -= 0.25;
-                    },
-                  ),
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                titlePadding: const EdgeInsets.only(bottom: 16),
-                collapseMode: CollapseMode.pin,
-                title: Text(
-                  widget.pdf.title,
-                  style: TextStyle(
-                    color: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF667EEA),
-                        Color(0xFF764BA2),
-                      ],
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Geometric pattern overlay
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: GeometricPatternPainter(),
-                        ),
-                      ),
-                    ],
-                  ),
+                onPressed: _downloadPdf,
+                tooltip: 'Download PDF',
+              ),
+            ),
+          if (_isDownloading)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF667EEA).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  value: _downloadProgress,
+                  strokeWidth: 2,
+                  color: const Color(0xFF667EEA),
                 ),
               ),
             ),
-          ];
-        },
-        body: Column(
-          children: [
-            // PDF info card
-            _buildPdfInfoCard(),
-            
-            // Download progress
-            if (_isDownloading) _buildDownloadProgress(),
-            
-            // PDF viewer
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: widget.localPath != null
-                      ? SfPdfViewer.file(
-                          File(widget.localPath!),
-                          controller: _pdfViewerController,
-                          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-                            _showErrorSnackBar('Failed to load PDF: ${details.error}');
-                          },
-                        )
-                      : SfPdfViewer.network(
-                          widget.pdf.fileUrl,
-                          controller: _pdfViewerController,
-                          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-                            _showErrorSnackBar('Failed to load PDF: ${details.error}');
-                          },
-                        ),
-                ),
+          if (_isDownloaded)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.download_done,
+                color: Colors.green,
               ),
             ),
-          ],
-        ),
+          
+          // Zoom controls
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF764BA2).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.zoom_in,
+                color: Color(0xFF764BA2),
+              ),
+              onPressed: () {
+                _pdfViewerController.zoomLevel += 0.25;
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF764BA2).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.zoom_out,
+                color: Color(0xFF764BA2),
+              ),
+              onPressed: () {
+                _pdfViewerController.zoomLevel -= 0.25;
+              },
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // PDF info card
+          _buildPdfInfoCard(),
+          
+          // Download progress
+          if (_isDownloading) _buildDownloadProgress(),
+          
+          // PDF viewer
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: widget.localPath != null
+                    ? SfPdfViewer.file(
+                        File(widget.localPath!),
+                        controller: _pdfViewerController,
+                        onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                          _showErrorSnackBar('Failed to load PDF: ${details.error}');
+                        },
+                      )
+                    : SfPdfViewer.network(
+                        widget.pdf.fileUrl,
+                        controller: _pdfViewerController,
+                        onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                          _showErrorSnackBar('Failed to load PDF: ${details.error}');
+                        },
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
