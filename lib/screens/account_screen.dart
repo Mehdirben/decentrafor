@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../services/username_service.dart';
+import '../services/admin_features_service.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -13,6 +14,7 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> with TickerProviderStateMixin {
   bool _isLoading = false;
   bool _isLoggedIn = false;
+  bool _adminFeaturesEnabled = false;
   String? _currentUsername;
   User? _currentUser;
   
@@ -41,6 +43,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     );
     
     _checkAuthStatus();
+    _loadAdminFeaturesState();
     _animationController.forward();
   }
 
@@ -76,6 +79,34 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadAdminFeaturesState() async {
+    try {
+      final enabled = await AdminFeaturesService.isEnabled();
+      setState(() {
+        _adminFeaturesEnabled = enabled;
+      });
+    } catch (e) {
+      // If loading fails, default to false
+      setState(() {
+        _adminFeaturesEnabled = false;
+      });
+    }
+  }
+
+  Future<void> _saveAdminFeaturesState(bool enabled) async {
+    try {
+      await AdminFeaturesService.setEnabled(enabled);
+    } catch (e) {
+      _showError('Failed to save admin features state: $e');
+    }
+  }
+
+  // Static method to check admin features state from anywhere in the app
+  // This will be used by other screens to determine if admin features should be shown
+  static Future<bool> isAdminFeaturesEnabled() async {
+    return await AdminFeaturesService.isEnabled();
   }
 
   Future<void> _signIn() async {
@@ -226,7 +257,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                     _buildAdminLoginSection(),
                     if (_isLoggedIn) ...[
                       const SizedBox(height: 32),
-                      _buildUserInfo(),
+                      _buildAdminFeaturesToggle(),
                       const SizedBox(height: 32),
                       _buildSignOutSection(),
                     ],
@@ -348,12 +379,17 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildUserInfo() {
+  Widget _buildAdminFeaturesToggle() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _adminFeaturesEnabled 
+              ? const Color(0xFF10B981).withValues(alpha: 0.3)
+              : const Color(0xFFEF4444).withValues(alpha: 0.3)
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -370,66 +406,164 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  color: _adminFeaturesEnabled 
+                      ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                      : const Color(0xFFEF4444).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF10B981),
+                child: Icon(
+                  _adminFeaturesEnabled ? Icons.admin_panel_settings : Icons.security,
+                  color: _adminFeaturesEnabled 
+                      ? const Color(0xFF10B981) 
+                      : const Color(0xFFEF4444),
                   size: 24,
                 ),
               ),
               const SizedBox(width: 16),
-              const Expanded(
-                child: Text(
-                  'User Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Admin Features',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    Text(
+                      _adminFeaturesEnabled 
+                          ? 'Admin features are currently enabled'
+                          : 'Admin features are currently disabled',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              Switch(
+                value: _adminFeaturesEnabled,
+                onChanged: (value) async {
+                  setState(() {
+                    _adminFeaturesEnabled = value;
+                  });
+                  await _saveAdminFeaturesState(value);
+                  _showSuccess(
+                    _adminFeaturesEnabled 
+                        ? 'Admin features enabled' 
+                        : 'Admin features disabled'
+                  );
+                },
+                activeColor: const Color(0xFF10B981),
+                inactiveThumbColor: const Color(0xFFEF4444),
+                inactiveTrackColor: const Color(0xFFEF4444).withValues(alpha: 0.3),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          _buildInfoRow('Email', _currentUser?.email ?? 'Not available'),
-          const SizedBox(height: 12),
-          _buildInfoRow('Username', _currentUsername ?? 'Not set'),
-          const SizedBox(height: 12),
-          _buildInfoRow('Status', 'Authenticated'),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _adminFeaturesEnabled 
+                  ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                  : const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _adminFeaturesEnabled 
+                    ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                    : const Color(0xFFF59E0B).withValues(alpha: 0.2)
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _adminFeaturesEnabled ? Icons.check_circle : Icons.info,
+                      color: _adminFeaturesEnabled 
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFF59E0B),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _adminFeaturesEnabled ? 'Admin Features Active' : 'Admin Features Disabled',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _adminFeaturesEnabled 
+                            ? const Color(0xFF065F46)
+                            : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _adminFeaturesEnabled 
+                      ? 'You can now delete PDFs, manage categories, and access all administrative functions.'
+                      : 'Admin features are disabled. Toggle to enable PDF deletion, category management, and other admin functions.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _adminFeaturesEnabled 
+                        ? const Color(0xFF047857)
+                        : const Color(0xFFA16207),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Admin features include:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFeatureItem('Delete PDFs from the library'),
+                    _buildFeatureItem('Manage PDF categories'),
+                    _buildFeatureItem('Access storage management'),
+                    _buildFeatureItem('View admin dashboard'),
+                    _buildFeatureItem('Moderate forum content'),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+  Widget _buildFeatureItem(String feature) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Icon(
+            Icons.fiber_manual_record,
+            size: 6,
+            color: Colors.grey[500],
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              feature,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF1F2937),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

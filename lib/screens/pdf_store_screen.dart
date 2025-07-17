@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/pdf_provider.dart';
@@ -6,6 +7,7 @@ import '../screens/pdf_viewer_screen.dart';
 import '../screens/add_pdf_screen.dart';
 import '../services/download_service.dart';
 import '../services/auth_service.dart';
+import '../services/admin_features_service.dart';
 
 class PdfStoreScreen extends StatefulWidget {
   const PdfStoreScreen({super.key});
@@ -15,16 +17,18 @@ class PdfStoreScreen extends StatefulWidget {
 }
 
 class _PdfStoreScreenState extends State<PdfStoreScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _searchAnimationController;
   late Animation<double> _searchAnimation;
   bool _isSearchFocused = false;
   bool _isAdmin = false;
+  Timer? _adminStatusTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -37,14 +41,23 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PdfProvider>(context, listen: false).loadPdfs();
       _checkAdminStatus();
+      _startAdminStatusTimer();
+    });
+  }
+
+  void _startAdminStatusTimer() {
+    // Check admin status every 2 seconds to detect changes
+    _adminStatusTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      _checkAdminStatus();
     });
   }
 
   Future<void> _checkAdminStatus() async {
     final isAdmin = await AuthService.isAdmin();
+    final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
     if (mounted) {
       setState(() {
-        _isAdmin = isAdmin;
+        _isAdmin = isAdmin && adminFeaturesEnabled;
       });
     }
   }
@@ -134,8 +147,18 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchAnimationController.dispose();
+    _adminStatusTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh admin status when app resumes (e.g., coming back from account screen)
+      _checkAdminStatus();
+    }
   }
 
   @override

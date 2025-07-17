@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/forum_provider.dart';
 import '../providers/username_provider.dart';
 import '../models/forum_category.dart';
+import '../services/admin_features_service.dart';
 import 'forum_category_screen.dart';
 import 'forum_search_screen.dart';
 
@@ -14,6 +15,13 @@ class ForumScreen extends StatefulWidget {
 }
 
 class _ForumScreenState extends State<ForumScreen> {
+  
+  Future<bool> _isAdminWithFeatures() async {
+    final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
+    final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
+    return usernameProvider.isAdmin && adminFeaturesEnabled;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -150,9 +158,10 @@ class _ForumScreenState extends State<ForumScreen> {
           );
         },
       ),
-      floatingActionButton: Consumer<UsernameProvider>(
-        builder: (context, usernameProvider, child) {
-          if (usernameProvider.isAdmin) {
+      floatingActionButton: FutureBuilder<bool>(
+        future: _isAdminWithFeatures(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data == true) {
             return FloatingActionButton.extended(
               onPressed: () => _showAddCategoryDialog(context),
               icon: const Icon(Icons.add),
@@ -288,10 +297,11 @@ class _ForumScreenState extends State<ForumScreen> {
                 ),
               ),
               // Admin delete button
-              Consumer<UsernameProvider>(
-                builder: (context, usernameProvider, child) {
-                  print('Category Card: Admin status = ${usernameProvider.isAdmin}, Username = ${usernameProvider.currentUsername}');
-                  if (usernameProvider.isAdmin) {
+              FutureBuilder<bool>(
+                future: _isAdminWithFeatures(),
+                builder: (context, snapshot) {
+                  print('Category Card: Admin features enabled = ${snapshot.data}, Loading = ${snapshot.connectionState == ConnectionState.waiting}');
+                  if (snapshot.hasData && snapshot.data == true) {
                     return IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: () => _showDeleteCategoryDialog(context, category),
