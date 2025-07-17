@@ -325,7 +325,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     20,
-                    10,
+                    0,
                     20,
                     100,
                   ), // Bottom padding for bottom nav bar
