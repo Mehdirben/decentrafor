@@ -33,130 +33,210 @@ class _ForumScreenState extends State<ForumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Education Forum'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          // Username display
-          Consumer<UsernameProvider>(
-            builder: (context, usernameProvider, child) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1F2937),
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'Education Forum',
+                  style: TextStyle(
+                    color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    ),
+                  ),
+                  child: Stack(
                     children: [
-                      const Icon(Icons.person, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        usernameProvider.currentUsername ?? 'User',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+                      // Background pattern
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: GeometricPatternPainter(),
                         ),
                       ),
+                      // Safe area for content
+                      const SafeArea(child: SizedBox.expand()),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          // Search icon
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ForumSearchScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Consumer<ForumProvider>(
-        builder: (context, forumProvider, child) {
-          if (forumProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (forumProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading forum',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    forumProvider.error!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => forumProvider.loadCategories(),
-                    child: const Text('Retry'),
-                  ),
-                ],
               ),
-            );
-          }
-
-          if (forumProvider.categories.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.forum_outlined,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No forum categories available',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Check back later for discussions!',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => forumProvider.loadCategories(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildWelcomeCard(context),
-                const SizedBox(height: 20),
-                Text(
-                  'Discussion Categories',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              actions: [
+                // Username display
+                Consumer<UsernameProvider>(
+                  builder: (context, usernameProvider, child) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: innerBoxIsScrolled 
+                            ? const Color(0xFF667EEA).withOpacity(0.1)
+                            : Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: innerBoxIsScrolled 
+                              ? const Color(0xFF667EEA).withOpacity(0.3)
+                              : Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_rounded,
+                            size: 16,
+                            color: innerBoxIsScrolled 
+                                ? const Color(0xFF667EEA)
+                                : Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 80),
+                            child: Text(
+                              usernameProvider.currentUsername ?? 'User',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: innerBoxIsScrolled 
+                                    ? const Color(0xFF667EEA)
+                                    : Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-                ...forumProvider.categories.map((category) => 
-                  _buildCategoryCard(context, category)
+                // Search icon
+                Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  child: IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: innerBoxIsScrolled 
+                            ? const Color(0xFF667EEA).withOpacity(0.1)
+                            : Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: innerBoxIsScrolled 
+                              ? const Color(0xFF667EEA).withOpacity(0.3)
+                              : Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.search_rounded,
+                        color: innerBoxIsScrolled 
+                            ? const Color(0xFF667EEA)
+                            : Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ForumSearchScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
-          );
+          ];
         },
+        body: Consumer<ForumProvider>(
+          builder: (context, forumProvider, child) {
+            if (forumProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (forumProvider.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Something went wrong',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      forumProvider.error!,
+                      style: const TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => forumProvider.loadCategories(),
+                      child: const Text('Try Again'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (forumProvider.categories.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'No forum categories available',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Check back later for discussions!',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () => forumProvider.loadCategories(),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildWelcomeCard(context),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Discussion Categories',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...forumProvider.categories.map((category) => 
+                    _buildCategoryCard(context, category)
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
       floatingActionButton: FutureBuilder<bool>(
         future: _isAdminWithFeatures(),
@@ -530,4 +610,35 @@ class _ForumScreenState extends State<ForumScreen> {
       },
     );
   }
+}
+
+// Custom painter for geometric background pattern
+class GeometricPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+
+    // Draw geometric circles
+    for (int i = 0; i < 5; i++) {
+      final radius = (i + 1) * 20.0;
+      final center = Offset(size.width * 0.8, size.height * 0.3);
+      canvas.drawCircle(center, radius, paint);
+    }
+
+    // Draw geometric lines
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    for (int i = 0; i < 10; i++) {
+      final y = i * 20.0;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 50), linePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
