@@ -15,6 +15,8 @@ class ForumScreen extends StatefulWidget {
 }
 
 class _ForumScreenState extends State<ForumScreen> {
+  final _scrollController = ScrollController();
+  bool _isScrolled = false;
   
   Future<bool> _isAdminWithFeatures() async {
     final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
@@ -25,15 +27,33 @@ class _ForumScreenState extends State<ForumScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ForumProvider>().loadCategories();
     });
+  }
+
+  void _onScroll() {
+    // Trigger color change when scrolled more than 20 pixels
+    final isScrolled = _scrollController.offset > 20;
+    if (isScrolled != _isScrolled) {
+      setState(() {
+        _isScrolled = isScrolled;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: NestedScrollView(
+        controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
@@ -42,13 +62,14 @@ class _ForumScreenState extends State<ForumScreen> {
               pinned: true,
               elevation: 0,
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1F2937),
+              foregroundColor: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                collapseMode: CollapseMode.pin,
                 title: Text(
                   'Education Forum',
                   style: TextStyle(
-                    color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                    color: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 22,
                   ),
@@ -83,12 +104,12 @@ class _ForumScreenState extends State<ForumScreen> {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: innerBoxIsScrolled 
+                        color: _isScrolled 
                             ? const Color(0xFF667EEA).withOpacity(0.1)
                             : Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: innerBoxIsScrolled 
+                          color: _isScrolled 
                               ? const Color(0xFF667EEA).withOpacity(0.3)
                               : Colors.white.withOpacity(0.3),
                         ),
@@ -99,7 +120,7 @@ class _ForumScreenState extends State<ForumScreen> {
                           Icon(
                             Icons.person_rounded,
                             size: 16,
-                            color: innerBoxIsScrolled 
+                            color: _isScrolled 
                                 ? const Color(0xFF667EEA)
                                 : Colors.white,
                           ),
@@ -111,7 +132,7 @@ class _ForumScreenState extends State<ForumScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
-                                color: innerBoxIsScrolled 
+                                color: _isScrolled 
                                     ? const Color(0xFF667EEA)
                                     : Colors.white,
                               ),
@@ -130,19 +151,19 @@ class _ForumScreenState extends State<ForumScreen> {
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: innerBoxIsScrolled 
+                        color: _isScrolled 
                             ? const Color(0xFF667EEA).withOpacity(0.1)
                             : Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: innerBoxIsScrolled 
+                          color: _isScrolled 
                               ? const Color(0xFF667EEA).withOpacity(0.3)
                               : Colors.white.withOpacity(0.3),
                         ),
                       ),
                       child: Icon(
                         Icons.search_rounded,
-                        color: innerBoxIsScrolled 
+                        color: _isScrolled 
                             ? const Color(0xFF667EEA)
                             : Colors.white,
                         size: 20,

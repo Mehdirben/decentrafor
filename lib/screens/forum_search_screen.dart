@@ -13,12 +13,31 @@ class ForumSearchScreen extends StatefulWidget {
 
 class _ForumSearchScreenState extends State<ForumSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   List<ForumTopic> _searchResults = [];
   bool _isSearching = false;
+  bool _isScrolled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // Trigger color change when scrolled more than 20 pixels
+    final isScrolled = _scrollController.offset > 20;
+    if (isScrolled != _isScrolled) {
+      setState(() {
+        _isScrolled = isScrolled;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -61,6 +80,7 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: NestedScrollView(
+        controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
@@ -69,9 +89,9 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
               pinned: true,
               elevation: 0,
               backgroundColor: Colors.white,
-              foregroundColor: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+              foregroundColor: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
               iconTheme: IconThemeData(
-                color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                color: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
               ),
               flexibleSpace: FlexibleSpaceBar(
                 centerTitle: true,
@@ -80,7 +100,7 @@ class _ForumSearchScreenState extends State<ForumSearchScreen> {
                 title: Text(
                   'Search Topics',
                   style: TextStyle(
-                    color: innerBoxIsScrolled ? const Color(0xFF1F2937) : Colors.white,
+                    color: _isScrolled ? const Color(0xFF1F2937) : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
