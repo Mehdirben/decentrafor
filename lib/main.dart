@@ -91,10 +91,16 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
+  void _navigateToStore() {
+    setState(() {
+      _currentIndex = 0;
+    });
+  }
+
+  List<Widget> get _screens => [
     const PdfStoreScreen(),
     const ForumScreen(),
-    const DownloadsScreen(),
+    DownloadsScreen(onNavigateToStore: _navigateToStore),
     const AccountScreen(),
   ];
 

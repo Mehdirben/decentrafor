@@ -5,7 +5,9 @@ import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
 
 class DownloadsScreen extends StatefulWidget {
-  const DownloadsScreen({super.key});
+  final VoidCallback? onNavigateToStore;
+  
+  const DownloadsScreen({super.key, this.onNavigateToStore});
 
   @override
   State<DownloadsScreen> createState() => _DownloadsScreenState();
@@ -401,7 +403,28 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (widget.onNavigateToStore != null) {
+                widget.onNavigateToStore!();
+              } else {
+                // Fallback navigation
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  // Show a message to the user
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Use the Store tab to browse PDFs'),
+                      backgroundColor: const Color(0xFF667EEA),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
             icon: const Icon(Icons.store_rounded),
             label: const Text('Browse Store'),
             style: ElevatedButton.styleFrom(
