@@ -9,7 +9,6 @@ import 'screens/pdf_store_screen.dart';
 import 'screens/forum_screen.dart';
 import 'screens/downloads_screen.dart';
 import 'screens/account_screen.dart';
-import 'screens/username_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,10 +68,6 @@ class _AppWrapperState extends State<AppWrapper> {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
-        }
-
-        if (!usernameProvider.hasUsername) {
-          return const UsernameSetupScreen();
         }
 
         return const MainNavigationScreen();
