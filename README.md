@@ -65,6 +65,29 @@ This will make DecentraFor truly decentralized, allowing educational communities
 4. Go to Storage and create a new bucket called `pdfs` with public access
 5. Update the Supabase URL and API key in `lib/config/supabase_config.dart` if needed
 
+#### Configuration File
+The Supabase configuration is stored in:
+```
+lib/config/supabase_config.dart
+```
+
+**⚠️ Security Note**: This file contains sensitive API keys and should be added to `.gitignore` to prevent accidental commits to version control. The file includes:
+- Supabase project URL
+- Anonymous API key
+- Storage bucket configuration
+
+**Setup Instructions**:
+1. Copy `lib/config/supabase_config.dart.example` to `lib/config/supabase_config.dart`
+2. Replace the placeholder values with your actual Supabase credentials:
+   ```dart
+   class SupabaseConfig {
+     static const String supabaseUrl = 'https://your-project.supabase.co';
+     static const String supabaseAnonKey = 'your-anon-key-here';
+     // ...
+   }
+   ```
+3. The actual config file is automatically ignored by git to protect your credentials
+
 ### 2. Flutter Setup
 
 1. Make sure you have Flutter installed and configured

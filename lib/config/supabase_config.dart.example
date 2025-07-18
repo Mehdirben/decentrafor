@@ -1,0 +1,13 @@
+class SupabaseConfig {
+  static const String supabaseUrl = 'YOUR_SUPABASE_PROJECT_URL';
+  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  
+  // PDF storage bucket name
+  static const String pdfBucketName = 'pdfs';
+}
+
+// Instructions:
+// 1. Copy this file to supabase_config.dart (remove .example)
+// 2. Replace YOUR_SUPABASE_PROJECT_URL with your actual Supabase project URL
+// 3. Replace YOUR_SUPABASE_ANON_KEY with your actual Supabase anonymous key
+// 4. The actual supabase_config.dart file is in .gitignore to protect your credentials
