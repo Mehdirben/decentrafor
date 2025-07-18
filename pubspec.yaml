@@ -49,6 +49,9 @@ dependencies:
   # State management
   provider: ^6.1.2
   
+  # Local storage
+  shared_preferences: ^2.2.2
+  
   # File handling
   file_picker: ^8.1.2
   path_provider: ^2.1.4
@@ -64,6 +67,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  
+  # App icon and splash screen generators
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -84,9 +91,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -111,5 +117,36 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
+
+# App icon configuration
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "logo.png"
+  windows:
+    generate: true
+    image_path: "logo.png"
+  macos:
+    generate: true
+    image_path: "logo.png"
+
+# Splash screen configuration
+flutter_native_splash:
+  color: "#F5F1E8" # Light beige background color from the logo
+  image: logo.png
+  branding: logo.png
+  color_dark: "#2F2F2F" # Dark background for dark mode
+  image_dark: logo.png
+  branding_dark: logo.png
+  android_12:
+    image: logo.png
+    color: "#F5F1E8"
+    image_dark: logo.png
+    color_dark: "#2F2F2F"
+  web: false
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

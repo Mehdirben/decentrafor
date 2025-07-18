@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
 import '../providers/pdf_provider.dart';
 import '../models/pdf_document.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../screens/add_pdf_screen.dart';
-import '../screens/downloads_screen.dart';
-import '../screens/authenticated_storage_screen.dart';
 import '../services/download_service.dart';
+import '../services/auth_service.dart';
+import '../services/admin_features_service.dart';
 
 class PdfStoreScreen extends StatefulWidget {
   const PdfStoreScreen({super.key});
@@ -17,18 +17,18 @@ class PdfStoreScreen extends StatefulWidget {
 }
 
 class _PdfStoreScreenState extends State<PdfStoreScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _searchAnimationController;
   late Animation<double> _searchAnimation;
-  late AnimationController _fabAnimationController;
-  late Animation<double> _fabAnimation;
   bool _isSearchFocused = false;
-  bool _isFabExpanded = false;
+  bool _isAdmin = false;
+  Timer? _adminStatusTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -38,25 +38,127 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
       curve: Curves.easeOut,
     );
 
-    _fabAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fabAnimation = CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: Curves.easeOut,
-    );
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PdfProvider>(context, listen: false).loadPdfs();
+      _checkAdminStatus();
+      _startAdminStatusTimer();
     });
+  }
+
+  void _startAdminStatusTimer() {
+    // Check admin status every 2 seconds to detect changes
+    _adminStatusTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      _checkAdminStatus();
+    });
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await AuthService.isAdmin();
+    final adminFeaturesEnabled = await AdminFeaturesService.isEnabled();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin && adminFeaturesEnabled;
+      });
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(PdfDocument pdf) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete PDF'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${pdf.title}"?'),
+            const SizedBox(height: 8),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _deletePdf(pdf);
+    }
+  }
+
+  Future<void> _deletePdf(PdfDocument pdf) async {
+    try {
+      await Provider.of<PdfProvider>(context, listen: false).deletePdf(pdf.id);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF "${pdf.title}" deleted successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete PDF: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchAnimationController.dispose();
-    _fabAnimationController.dispose();
+    _adminStatusTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh admin status when app resumes (e.g., coming back from account screen)
+      _checkAdminStatus();
+    }
   }
 
   @override
@@ -114,18 +216,58 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text(
-                                  'PDF Library',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'PDF Library',
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    if (_isAdmin)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.admin_panel_settings_rounded,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Admin',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Discover and organize your documents',
+                                  _isAdmin 
+                                      ? 'Manage and organize your documents'
+                                      : 'Discover and organize your documents',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.white.withValues(alpha: 0.9),
@@ -173,13 +315,20 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                     ),
                   ),
                 ),
+                // Add PDF Button Section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+                    child: _buildAddPdfButton(),
+                  ),
+                ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     20,
-                    30,
+                    0,
                     20,
                     100,
-                  ), // Added top padding to push PDFs down
+                  ), // Bottom padding for bottom nav bar
                   sliver: pdfProvider.pdfs.isEmpty
                       ? SliverToBoxAdapter(child: _buildEmptyState())
                       : SliverList(
@@ -194,7 +343,11 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
                               ),
                               curve: Curves.easeOutBack,
                               margin: const EdgeInsets.only(bottom: 16),
-                              child: ModernPdfListCard(pdf: pdf),
+                              child: ModernPdfListCard(
+                                pdf: pdf,
+                                isAdmin: _isAdmin,
+                                onDelete: () => _showDeleteConfirmation(pdf),
+                              ),
                             );
                           }, childCount: pdfProvider.pdfs.length),
                         ),
@@ -204,146 +357,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           );
         },
       ),
-      floatingActionButton: _buildExpandableFAB(),
     );
-  }
-
-  Widget _buildExpandableFAB() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        // Expanded action buttons
-        AnimatedBuilder(
-          animation: _fabAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _fabAnimation.value,
-              child: Opacity(
-                opacity: _fabAnimation.value,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Storage button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "storage",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AuthenticatedStorageScreen(),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.storage_rounded),
-                      ),
-                    ),
-                    // Downloads button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "downloads",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DownloadsScreen(),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.download_rounded),
-                      ),
-                    ),
-                    // Add PDF button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        heroTag: "add_pdf",
-                        onPressed: () {
-                          _toggleFAB();
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      const AddPdfScreen(),
-                              transitionsBuilder:
-                                  (
-                                    context,
-                                    animation,
-                                    secondaryAnimation,
-                                    child,
-                                  ) {
-                                    return SlideTransition(
-                                      position: animation.drive(
-                                        Tween(
-                                          begin: const Offset(0.0, 1.0),
-                                          end: Offset.zero,
-                                        ).chain(
-                                          CurveTween(curve: Curves.easeOut),
-                                        ),
-                                      ),
-                                      child: child,
-                                    );
-                                  },
-                              transitionDuration: const Duration(
-                                milliseconds: 300,
-                              ),
-                            ),
-                          );
-                        },
-                        backgroundColor: const Color(0xFF667EEA),
-                        foregroundColor: Colors.white,
-                        elevation: 6,
-                        child: const Icon(Icons.add_rounded),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        // Main FAB
-        FloatingActionButton(
-          heroTag: "main",
-          onPressed: _toggleFAB,
-          backgroundColor: const Color(0xFF667EEA),
-          foregroundColor: Colors.white,
-          elevation: 8,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Icon(
-              _isFabExpanded ? Icons.close_rounded : Icons.menu_rounded,
-              key: ValueKey(_isFabExpanded),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _toggleFAB() {
-    setState(() {
-      _isFabExpanded = !_isFabExpanded;
-    });
-
-    if (_isFabExpanded) {
-      _fabAnimationController.forward();
-    } else {
-      _fabAnimationController.reverse();
-    }
   }
 
   Widget _buildLoadingState() {
@@ -634,6 +648,101 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
     );
   }
 
+  Widget _buildAddPdfButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const AddPdfScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(0.0, 0.1),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 300),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Add New PDF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Upload and share your documents',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<int> _getDownloadedCount(List<PdfDocument> pdfs) async {
     int count = 0;
     for (final pdf in pdfs) {
@@ -708,7 +817,7 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            'Add your first PDF to get started',
+            'Use the "Add New PDF" button above to get started',
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
@@ -739,8 +848,15 @@ class _PdfStoreScreenState extends State<PdfStoreScreen>
 // Modern PDF List Card optimized for list layout
 class ModernPdfListCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const ModernPdfListCard({super.key, required this.pdf});
+  const ModernPdfListCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<ModernPdfListCard> createState() => _ModernPdfListCardState();
@@ -1066,10 +1182,46 @@ class _ModernPdfListCardState extends State<ModernPdfListCard>
                       ),
                     ),
 
-                    // Right side - Download button
+                    // Right side - Action buttons
                     Container(
-                      width: 60,
-                      child: Center(child: _buildListDownloadButton()),
+                      width: widget.isAdmin ? 120 : 60,
+                      child: widget.isAdmin
+                          ? Row(
+                              children: [
+                                // Delete button for admin
+                                Container(
+                                  width: 50,
+                                  child: Center(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.red.withValues(alpha: 0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_rounded,
+                                          color: Colors.red,
+                                          size: 18,
+                                        ),
+                                        onPressed: widget.onDelete,
+                                        tooltip: 'Delete PDF',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Download button
+                                Container(
+                                  width: 50,
+                                  child: Center(child: _buildListDownloadButton()),
+                                ),
+                              ],
+                            )
+                          : Center(child: _buildListDownloadButton()),
                     ),
                   ],
                 ),
@@ -1229,8 +1381,15 @@ class GeometricPatternPainter extends CustomPainter {
 
 class ModernPdfCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const ModernPdfCard({super.key, required this.pdf});
+  const ModernPdfCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<ModernPdfCard> createState() => _ModernPdfCardState();
@@ -1435,7 +1594,7 @@ class _ModernPdfCardState extends State<ModernPdfCard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header with icon and download button
+                          // Header with icon and action buttons
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1449,7 +1608,38 @@ class _ModernPdfCardState extends State<ModernPdfCard>
                                 ),
                                 child: _buildThumbnail(),
                               ),
-                              _buildModernDownloadButton(),
+                              // Action buttons section
+                              widget.isAdmin
+                                  ? Row(
+                                      children: [
+                                        // Delete button for admin
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(alpha: 0.1),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_rounded,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                            onPressed: widget.onDelete,
+                                            tooltip: 'Delete PDF',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildModernDownloadButton(),
+                                      ],
+                                    )
+                                  : _buildModernDownloadButton(),
                             ],
                           ),
 
@@ -1717,8 +1907,15 @@ class _ModernPdfCardState extends State<ModernPdfCard>
 // Legacy PdfCard class for backward compatibility
 class PdfCard extends StatefulWidget {
   final PdfDocument pdf;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
-  const PdfCard({super.key, required this.pdf});
+  const PdfCard({
+    super.key,
+    required this.pdf,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   @override
   State<PdfCard> createState() => _PdfCardState();
@@ -1836,12 +2033,24 @@ class _PdfCardState extends State<PdfCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // PDF icon and download button
+              // PDF icon and action buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Icon(Icons.picture_as_pdf, size: 48, color: Colors.red),
-                  _buildDownloadButton(),
+                  Row(
+                    children: [
+                      if (widget.isAdmin) ...[
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: widget.onDelete,
+                          tooltip: 'Delete PDF',
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _buildDownloadButton(),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
