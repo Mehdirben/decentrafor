@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,6 +32,14 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
   // Form keys
   final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _usernameFormKey = GlobalKey<FormState>();
+  
+  // Username availability checking
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  String? _lastCheckedUsername;
+  
+  // Timer for debouncing username checks
+  Timer? _usernameCheckTimer;
 
   @override
   void initState() {
@@ -53,16 +62,20 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     try {
       // Get username from provider (this will handle initialization)
       final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
-      setState(() {
-        _currentUsername = usernameProvider.currentUsername ?? 'User';
-        _usernameController.text = usernameProvider.currentUsername ?? '';
-      });
+      if (mounted) {
+        setState(() {
+          _currentUsername = usernameProvider.currentUsername ?? 'User';
+          _usernameController.text = usernameProvider.currentUsername ?? '';
+        });
+      }
     } catch (e) {
       // If loading fails, set default
-      setState(() {
-        _currentUsername = 'User';
-        _usernameController.text = '';
-      });
+      if (mounted) {
+        setState(() {
+          _currentUsername = 'User';
+          _usernameController.text = '';
+        });
+      }
     }
   }
 
@@ -72,43 +85,54 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
+    _usernameCheckTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _checkAuthStatus() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       // Check admin authentication separately from username
       final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
+      if (user != null && mounted) {
         setState(() {
           _isLoggedIn = true;
           _currentUser = user;
         });
       }
     } catch (e) {
-      _showError('Error checking authentication: $e');
+      if (mounted) {
+        _showError('Error checking authentication: $e');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _loadAdminFeaturesState() async {
     try {
       final enabled = await AdminFeaturesService.isEnabled();
-      setState(() {
-        _adminFeaturesEnabled = enabled;
-      });
+      if (mounted) {
+        setState(() {
+          _adminFeaturesEnabled = enabled;
+        });
+      }
     } catch (e) {
       // If loading fails, default to false
-      setState(() {
-        _adminFeaturesEnabled = false;
-      });
+      if (mounted) {
+        setState(() {
+          _adminFeaturesEnabled = false;
+        });
+      }
     }
   }
 
@@ -116,16 +140,20 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     try {
       await AdminFeaturesService.setEnabled(enabled);
     } catch (e) {
-      _showError('Failed to save admin features state: $e');
+      if (mounted) {
+        _showError('Failed to save admin features state: $e');
+      }
     }
   }
 
   Future<void> _signIn() async {
     if (!_loginFormKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       await AuthService.signInWithEmail(
@@ -134,71 +162,170 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       );
       
       await _checkAuthStatus();
-      _showSuccess('Signed in successfully!');
-      
-      // Clear form
-      _emailController.clear();
-      _passwordController.clear();
+      if (mounted) {
+        _showSuccess('Signed in successfully!');
+        
+        // Clear form
+        _emailController.clear();
+        _passwordController.clear();
+      }
     } catch (e) {
-      _showError('Sign in failed: $e');
+      if (mounted) {
+        _showError('Sign in failed: $e');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _signOut() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       await AuthService.signOut();
-      setState(() {
-        _isLoggedIn = false;
-        _currentUser = null;
-        // Don't clear _currentUsername - it stays independent
-      });
-      _showSuccess('Signed out successfully');
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _currentUser = null;
+          // Don't clear _currentUsername - it stays independent
+        });
+        _showSuccess('Signed out successfully');
+      }
     } catch (e) {
-      _showError('Sign out failed: $e');
+      if (mounted) {
+        _showError('Sign out failed: $e');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _updateUsername() async {
     if (!_usernameFormKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final newUsername = _usernameController.text.trim();
+      
+      // Don't update if it's the same username
+      if (newUsername == _currentUsername) {
+        if (mounted) {
+          _showSuccess('Username is already set to "$newUsername"');
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
       
       // Use the provider's setUsername method which handles database registration
       final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
       final success = await usernameProvider.setUsername(newUsername);
       
-      if (success) {
-        setState(() {
-          _currentUsername = newUsername;
-        });
-        _showSuccess('Username updated successfully!');
-      } else {
-        // Show the error from the provider
-        _showError(usernameProvider.error ?? 'Failed to update username');
+      if (mounted) {
+        if (success) {
+          setState(() {
+            _currentUsername = newUsername;
+          });
+          _showSuccess('Username updated successfully to "$newUsername"!');
+        } else {
+          // Show the error from the provider and reset the text field
+          final errorMessage = usernameProvider.error ?? 'Failed to update username';
+          _showError(errorMessage);
+          
+          // Reset the text field to the current username
+          setState(() {
+            _usernameController.text = _currentUsername ?? '';
+          });
+        }
       }
     } catch (e) {
-      _showError('Failed to update username: $e');
+      if (mounted) {
+        _showError('Failed to update username: $e');
+        // Reset the text field to the current username
+        setState(() {
+          _usernameController.text = _currentUsername ?? '';
+        });
+      }
     } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (username.trim().isEmpty || username.trim().length < 3) {
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = null;
+          _lastCheckedUsername = null;
+          _isCheckingUsername = false;
+        });
+      }
+      return;
+    }
+
+    final trimmedUsername = username.trim();
+    
+    // Don't check if it's the same as current username
+    if (trimmedUsername == _currentUsername) {
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = true;
+          _lastCheckedUsername = trimmedUsername;
+          _isCheckingUsername = false;
+        });
+      }
+      return;
+    }
+
+    // Don't check if we already checked this username
+    if (trimmedUsername == _lastCheckedUsername) return;
+
+    if (mounted) {
       setState(() {
-        _isLoading = false;
+        _isCheckingUsername = true;
+        _lastCheckedUsername = trimmedUsername;
       });
+    }
+
+    try {
+      final usernameProvider = Provider.of<UsernameProvider>(context, listen: false);
+      final isAvailable = await usernameProvider.isUsernameAvailable(trimmedUsername);
+      
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = isAvailable;
+          _isCheckingUsername = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUsernameAvailable = null;
+          _isCheckingUsername = false;
+        });
+      }
     }
   }
 
@@ -226,6 +353,166 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
         ),
       ),
     );
+  }
+
+  // Helper methods for username validation UI
+  Color _getInputBorderColor() {
+    final trimmedText = _usernameController.text.trim();
+    
+    if (trimmedText.isEmpty || trimmedText.length < 3) {
+      return Colors.grey.shade300;
+    }
+    
+    if (trimmedText == _currentUsername) {
+      return const Color(0xFF8B5CF6); // Default purple for current username
+    }
+    
+    if (_isCheckingUsername) {
+      return const Color(0xFFF59E0B); // Orange while checking
+    }
+    
+    if (_isUsernameAvailable == true) {
+      return const Color(0xFF10B981); // Green for available
+    }
+    
+    if (_isUsernameAvailable == false) {
+      return const Color(0xFFEF4444); // Red for taken
+    }
+    
+    return const Color(0xFF8B5CF6); // Default purple
+  }
+
+  Widget? _buildUsernameStatusIcon() {
+    final trimmedText = _usernameController.text.trim();
+    
+    if (trimmedText.isEmpty || trimmedText.length < 3) {
+      return null;
+    }
+    
+    if (trimmedText == _currentUsername) {
+      return const Icon(
+        Icons.check_circle,
+        color: Color(0xFF8B5CF6),
+        size: 20,
+      );
+    }
+    
+    if (_isCheckingUsername) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF59E0B)),
+        ),
+      );
+    }
+    
+    if (_isUsernameAvailable == true) {
+      return const Icon(
+        Icons.check_circle,
+        color: Color(0xFF10B981),
+        size: 20,
+      );
+    }
+    
+    if (_isUsernameAvailable == false) {
+      return const Icon(
+        Icons.cancel,
+        color: Color(0xFFEF4444),
+        size: 20,
+      );
+    }
+    
+    return null;
+  }
+
+  String _getHelperText() {
+    final trimmedText = _usernameController.text.trim();
+    
+    if (trimmedText.isEmpty || trimmedText.length < 3) {
+      return 'This will be your display name in the forum';
+    }
+    
+    if (trimmedText == _currentUsername) {
+      return 'This is your current username';
+    }
+    
+    if (_isCheckingUsername) {
+      return 'Checking availability...';
+    }
+    
+    if (_isUsernameAvailable == true) {
+      return 'Username is available!';
+    }
+    
+    if (_isUsernameAvailable == false) {
+      return 'Username is already taken';
+    }
+    
+    return 'This will be your display name in the forum';
+  }
+
+  Color _getHelperTextColor() {
+    final trimmedText = _usernameController.text.trim();
+    
+    if (trimmedText.isEmpty || trimmedText.length < 3) {
+      return Colors.grey.shade600;
+    }
+    
+    if (trimmedText == _currentUsername) {
+      return const Color(0xFF8B5CF6);
+    }
+    
+    if (_isCheckingUsername) {
+      return const Color(0xFFF59E0B);
+    }
+    
+    if (_isUsernameAvailable == true) {
+      return const Color(0xFF10B981);
+    }
+    
+    if (_isUsernameAvailable == false) {
+      return const Color(0xFFEF4444);
+    }
+    
+    return Colors.grey.shade600;
+  }
+
+  bool _canUpdateUsername() {
+    final trimmedText = _usernameController.text.trim();
+    
+    // Can't update if empty or too short
+    if (trimmedText.isEmpty || trimmedText.length < 3) {
+      return false;
+    }
+    
+    // Can update if it's the current username (no change needed, but not an error)
+    if (trimmedText == _currentUsername) {
+      return true;
+    }
+    
+    // Can't update if still checking or username is taken
+    if (_isCheckingUsername || _isUsernameAvailable == false) {
+      return false;
+    }
+    
+    // Can update if username is available or hasn't been checked yet
+    return _isUsernameAvailable == true || _isUsernameAvailable == null;
+  }
+
+  String _getUpdateButtonText() {
+    final trimmedText = _usernameController.text.trim();
+    
+    if (trimmedText == _currentUsername) {
+      return 'Username Already Set';
+    }
+    
+    if (_currentUsername != null) {
+      return 'Update Username';
+    }
+    
+    return 'Set Username';
   }
 
   @override
@@ -423,15 +710,19 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
               Switch(
                 value: _adminFeaturesEnabled,
                 onChanged: (value) async {
-                  setState(() {
-                    _adminFeaturesEnabled = value;
-                  });
+                  if (mounted) {
+                    setState(() {
+                      _adminFeaturesEnabled = value;
+                    });
+                  }
                   await _saveAdminFeaturesState(value);
-                  _showSuccess(
-                    _adminFeaturesEnabled 
-                        ? 'Admin features enabled' 
-                        : 'Admin features disabled'
-                  );
+                  if (mounted) {
+                    _showSuccess(
+                      _adminFeaturesEnabled 
+                          ? 'Admin features enabled' 
+                          : 'Admin features disabled'
+                    );
+                  }
                 },
                 activeColor: const Color(0xFF10B981),
                 inactiveThumbColor: const Color(0xFFEF4444),
@@ -604,6 +895,17 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
             const SizedBox(height: 20),
             TextFormField(
               controller: _usernameController,
+              onChanged: (value) {
+                // Cancel previous timer
+                _usernameCheckTimer?.cancel();
+                
+                // Start new timer for debounced checking
+                _usernameCheckTimer = Timer(const Duration(milliseconds: 500), () {
+                  if (mounted && _usernameController.text == value) {
+                    _checkUsernameAvailability(value);
+                  }
+                });
+              },
               decoration: InputDecoration(
                 labelText: 'Username',
                 hintText: _currentUsername ?? 'Enter your username',
@@ -612,10 +914,23 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF8B5CF6)),
+                  borderSide: BorderSide(
+                    color: _getInputBorderColor(),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: _getInputBorderColor(),
+                  ),
                 ),
                 prefixIcon: const Icon(Icons.person_outline),
-                helperText: 'This will be your display name in the forum',
+                suffixIcon: _buildUsernameStatusIcon(),
+                helperText: _getHelperText(),
+                helperStyle: TextStyle(
+                  color: _getHelperTextColor(),
+                  fontSize: 12,
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -624,6 +939,9 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                 if (value.trim().length < 3) {
                   return 'Username must be at least 3 characters';
                 }
+                if (_isUsernameAvailable == false && value.trim() != _currentUsername) {
+                  return 'Username is already taken';
+                }
                 return null;
               },
             ),
@@ -631,7 +949,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _updateUsername,
+                onPressed: _isLoading || !_canUpdateUsername() ? null : _updateUsername,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8B5CF6),
                   foregroundColor: Colors.white,
@@ -650,7 +968,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                         ),
                       )
                     : Text(
-                        _currentUsername != null ? 'Update Username' : 'Set Username',
+                        _getUpdateButtonText(),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
