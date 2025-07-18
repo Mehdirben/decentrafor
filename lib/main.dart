@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => UsernameProvider()),
       ],
       child: MaterialApp(
-        title: 'Decentrafor - Educational Platform',
+        title: 'DecentraFor',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
