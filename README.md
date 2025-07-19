@@ -81,9 +81,11 @@ lib/config/supabase_config.dart
 2. Replace the placeholder values with your actual Supabase credentials:
    ```dart
    class SupabaseConfig {
-     static const String supabaseUrl = 'https://your-project.supabase.co';
-     static const String supabaseAnonKey = 'your-anon-key-here';
-     // ...
+      static const String supabaseUrl = 'YOUR_SUPABASE_PROJECT_URL';
+      static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+      
+      // PDF storage bucket name
+      static const String pdfBucketName = 'pdfs';
    }
    ```
 3. The actual config file is automatically ignored by git to protect your credentials
